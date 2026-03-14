@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { ClientDateTime } from '@/components/ui/client-datetime'
 
 export default async function AdminDashboardPage() {
   const [{ data: stats, error }, { data: admin }] = await Promise.all([
@@ -52,7 +52,8 @@ export default async function AdminDashboardPage() {
                Hola, {adminName}
             </h1>
             <p className="text-muted-foreground font-medium text-sm flex items-center gap-2">
-               Resumen ejecutivo de <span className="text-foreground font-bold italic">Membresías VIP</span> · {format(new Date(), "eeee, d 'de' MMMM", { locale: es })}
+               Resumen ejecutivo de <span className="text-foreground font-bold italic">Membresías VIP</span>
+               {' · '}<ClientDateTime />
             </p>
          </div>
          

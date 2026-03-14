@@ -17,6 +17,8 @@ import {
 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { getBusinessDate } from '@/lib/utils'
+import { ClientDateTime } from '@/components/ui/client-datetime'
 
 export default async function ClientPage() {
   const { data, error } = await fetchMyStatus()
@@ -35,7 +37,7 @@ export default async function ClientPage() {
 
   const { profile, latestMembership, payments } = data
 
-  const today = new Date()
+  const today = getBusinessDate()
   let mStatus: 'Activa' | 'Por Vencer' | 'Vencida' | 'Sin plan' = 'Sin plan'
   let daysDiff = 0
   let daysTotal = 0
@@ -66,7 +68,7 @@ export default async function ClientPage() {
           Hola, {firstName}
         </h1>
         <p className="text-muted-foreground font-medium">
-          {format(new Date(), "EEEE, d 'de' MMMM yyyy", { locale: es })}
+          <ClientDateTime options={{ weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }} />
         </p>
       </div>
 

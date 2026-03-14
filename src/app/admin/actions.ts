@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { differenceInDays } from 'date-fns'
+import { getBusinessDate } from '@/lib/utils'
 
 export async function fetchDashboardStats() {
   const supabase = await createClient()
@@ -21,8 +22,10 @@ export async function fetchDashboardStats() {
     .order('end_date', { ascending: false })
 
   // 3. Obtener Pagos de este mes y de HOY
-  const today = new Date()
+  const nowInPeru = getBusinessDate()
+  const today = new Date(nowInPeru)
   today.setHours(0, 0, 0, 0)
+  
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
   
   const { data: payments, error: paymentsError } = await supabase
@@ -66,7 +69,7 @@ export async function fetchDashboardStats() {
   const soonToExpireList: any[] = []
   const expiredList: any[] = []
 
-  const now = new Date()
+  const now = getBusinessDate()
 
   memberships?.forEach(m => {
       if (!latestMemberships.has(m.user_id)) {
