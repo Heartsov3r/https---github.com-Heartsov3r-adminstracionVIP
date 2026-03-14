@@ -11,6 +11,7 @@ import {
   Target,
   Trophy
 } from 'lucide-react'
+import { ReportsClient } from './ReportsClient'
 
 export default async function ReportsPage() {
   const { data, error } = await fetchFinancialStats()
@@ -33,12 +34,15 @@ export default async function ReportsPage() {
 
   return (
     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-700">
-      {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40">
-          Reportes Financieros
-        </h1>
-        <p className="text-sm text-muted-foreground font-medium italic">Análisis detallado de recaudación y crecimiento</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-white/40">
+            Reportes Financieros
+          </h1>
+          <p className="text-sm text-muted-foreground font-medium italic">Análisis detallado de recaudación y crecimiento</p>
+        </div>
+        
+        <ReportsClient monthly={monthly} yearly={yearly} />
       </div>
 
       {/* Impact Cards */}
