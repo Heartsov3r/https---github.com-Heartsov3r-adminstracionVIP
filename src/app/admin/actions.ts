@@ -7,18 +7,18 @@ import { getBusinessDate } from '@/lib/utils'
 export async function fetchDashboardStats() {
   const supabase = await createClient()
 
-  // 1. Obtener todos los usuarios "clientes"
-  const { data: clients, error: clientsError } = await supabase
+  // 1. Obtener todos los perfiles "clientes" y "admins"
+  const { data: allProfiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id')
-    .eq('role', 'client')
+    .select('id, full_name, email, phone, role')
+
+  const clients = allProfiles?.filter(p => p.role === 'client') || []
+  const admins = allProfiles?.filter(p => p.role === 'admin') || []
 
   // 2. Obtener todas las membresías con sus planes
-  // Solo la última membresía por usuario (haciendo un query ordenado)
-  // Como la DB de Supabase con JS a veces es difícil de estructurar, traeremos todas y agrupamos en memoria
   const { data: memberships, error: membershipsError } = await supabase
     .from('memberships')
-    .select('*, plans(*), profiles(*)')
+    .select('*, plans(*)')
     .order('end_date', { ascending: false })
 
   // 3. Obtener Pagos de este mes y de HOY
@@ -41,24 +41,15 @@ export async function fetchDashboardStats() {
     .gte('payment_date', firstDayOfMonth.toISOString())
     .order('payment_date', { ascending: false })
 
-  if (clientsError) {
-    console.error('Clients error:', clientsError)
-    return { data: null, error: `Error clientes: ${clientsError.message}` }
-  }
-  if (membershipsError) {
-    console.error('Memberships error:', membershipsError)
-    return { data: null, error: `Error membresías: ${membershipsError.message}` }
-  }
-  if (paymentsError) {
-    console.error('Payments error:', paymentsError)
-    return { data: null, error: `Error pagos: ${paymentsError.message}` }
-  }
+  if (profilesError) return { data: null, error: `Error perfiles: ${profilesError.message}` }
+  if (membershipsError) return { data: null, error: `Error membresías: ${membershipsError.message}` }
+  if (paymentsError) return { data: null, error: `Error pagos: ${paymentsError.message}` }
 
   // Lógica de Estado
   let activeCount = 0
   let soonToExpireCount = 0
   let expiredCount = 0
-  const noMembershipCount = clients ? clients.length : 0
+  const noMembershipCount = clients.length
 
   // Agrupamos la membresia más reciente por usuario
   const latestMemberships = new Map()
@@ -73,12 +64,13 @@ export async function fetchDashboardStats() {
 
   memberships?.forEach(m => {
       if (!latestMemberships.has(m.user_id)) {
-          const profile = m.profiles || {}
+          const profile = (allProfiles?.find(p => p.id === m.user_id) || {}) as any
           const planName = m.plans?.name || 'Personalizado'
           const userObj = {
               id: m.user_id,
               full_name: profile.full_name || 'Sin Nombre',
               email: profile.email,
+              phone: profile.phone,
               plan_name: planName,
               end_date: m.end_date
           }
@@ -137,6 +129,7 @@ export async function fetchDashboardStats() {
       dailyRevenue,
       planDistribution: Object.entries(planCounts).map(([name, value]) => ({ name, value })),
       recentActivity,
+      admins: admins.map(a => ({ full_name: a.full_name, phone: a.phone })),
       details: {
           activeVIPs,
           soonToExpireList,
@@ -217,18 +210,30 @@ export async function fetchFinancialStats() {
   
   let grandTotal = 0
   
+  // Usar formateadores con zona horaria de Perú para agrupar correctamente
+  const monthFormatter = new Intl.DateTimeFormat('es-PE', { month: 'short', timeZone: 'America/Lima' })
+  const yearFormatter = new Intl.DateTimeFormat('es-PE', { year: 'numeric', timeZone: 'America/Lima' })
+  const monthIndexFormatter = new Intl.DateTimeFormat('es-PE', { month: 'numeric', timeZone: 'America/Lima' })
+
   payments.forEach(p => {
     const date = new Date(p.payment_date)
     const amount = Number(p.amount)
     
-    const year = date.getFullYear()
-    const monthIndex = date.getMonth()
-    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    // Obtener valores en Perú
+    const year = parseInt(yearFormatter.format(date))
+    const monthName = monthFormatter.format(date).replace('.', '') // Abr. -> Abr
+    const monthIndex = parseInt(monthIndexFormatter.format(date)) - 1 // 1-12 -> 0-11
+    
     const monthKey = `${year}-${monthIndex}`
 
     // Mensual
     if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = { month: monthNames[monthIndex], year, total: 0, count: 0 }
+      monthlyData[monthKey] = { 
+        month: monthName.charAt(0).toUpperCase() + monthName.slice(1), 
+        year, 
+        total: 0, 
+        count: 0 
+      }
     }
     monthlyData[monthKey].total += amount
     monthlyData[monthKey].count += 1
@@ -243,12 +248,15 @@ export async function fetchFinancialStats() {
     grandTotal += amount
   })
 
-  // Convertir a arrays ordenados
-  const monthlyArray = Object.values(monthlyData).sort((a, b) => {
-    if (a.year !== b.year) return a.year - b.year
-    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-    return monthNames.indexOf(a.month) - monthNames.indexOf(b.month)
-  })
+  // Convertir a arrays ordenados por fecha real
+  const monthlyArray = Object.keys(monthlyData)
+    .sort((a, b) => {
+        const [yearA, monA] = a.split('-').map(Number)
+        const [yearB, monB] = b.split('-').map(Number)
+        if (yearA !== yearB) return yearA - yearB
+        return monA - monB
+    })
+    .map(key => monthlyData[key])
 
   const yearlyArray = Object.values(yearlyData).sort((a, b) => a.year - b.year)
 
@@ -260,7 +268,7 @@ export async function fetchFinancialStats() {
     if (prevMonth > 0) {
       percentageChange = ((lastMonth - prevMonth) / prevMonth) * 100
     } else {
-      percentageChange = 100 // Crecimiento infinito si el anterior fue 0
+      percentageChange = 100
     }
   }
 

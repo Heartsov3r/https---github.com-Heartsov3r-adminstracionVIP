@@ -12,7 +12,8 @@ import {
   Activity,
   History,
   User,
-  Clock
+  Clock,
+  MessageCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -55,6 +56,33 @@ export default async function AdminDashboardPage() {
                {' · '}<ClientDateTime />
             </p>
          </div>
+
+         {(stats.soonToExpire > 0 || stats.expired > 0) && (
+            <div className="flex-1 max-w-xl animate-in fade-in slide-in-from-top-4 duration-1000">
+               <div className="bg-amber-500/10 border border-amber-500/20 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between gap-4 group">
+                  <div className="flex items-center gap-3">
+                     <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                        <AlertTriangle className="w-5 h-5 animate-pulse" />
+                     </div>
+                     <div>
+                        <p className="text-sm font-black text-amber-500 tracking-tight">Atención Administrativa</p>
+                        <p className="text-xs text-amber-200/60 font-medium">
+                           {stats.expired > 0 && <span>{stats.expired} expiradas</span>}
+                           {stats.expired > 0 && stats.soonToExpire > 0 && <span> y </span>}
+                           {stats.soonToExpire > 0 && <span>{stats.soonToExpire} por vencer</span>}
+                        </p>
+                     </div>
+                  </div>
+                   <div className="flex items-center gap-2">
+                      <Link href="#admin-critical-alerts">
+                         <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500/20 h-8 rounded-lg">
+                            Ver Detalles
+                         </Button>
+                      </Link>
+                   </div>
+               </div>
+            </div>
+         )}
          
          <div className="flex flex-wrap gap-3 sm:gap-4">
             <div className="bg-white/[0.02] border border-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] flex flex-col flex-1 min-w-[120px] sm:min-w-[160px] shadow-2xl relative overflow-hidden group hover:bg-white/[0.04] transition-all">
@@ -114,7 +142,7 @@ export default async function AdminDashboardPage() {
         <div className="lg:col-span-8 space-y-6 sm:space-y-10">
            <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
               {/* Card: Por Vencer */}
-              <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-amber-500/10 flex flex-col group shadow-xl shadow-amber-500/5 relative overflow-hidden">
+              <div id="admin-critical-alerts" className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-amber-500/10 flex flex-col group shadow-xl shadow-amber-500/5 relative overflow-hidden">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl" />
                 <div className="flex items-center justify-between mb-6 sm:mb-8">
                    <div className="flex items-center gap-3 sm:gap-4">
@@ -123,7 +151,32 @@ export default async function AdminDashboardPage() {
                       </div>
                       <div>
                           <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">Alerta Prox.</h3>
-                          <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Vencen en 7 días o menos</p>
+                          <div className="flex items-center gap-3">
+                             <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Vencen en 7 días o menos</p>
+                             <Button 
+                                size="sm" 
+                                variant="default" 
+                                className="bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black uppercase tracking-widest h-7 px-2 rounded-lg shadow-lg shadow-emerald-500/20 gap-1"
+                                onClick={() => {
+                                   const soonList = stats.details.soonToExpireList
+                                   if (soonList.length === 0) {
+                                      alert("No hay vencimientos próximos en 7 días para reportar.")
+                                      return
+                                   }
+                                   
+                                   const reportLines = soonList.map((c: any) => 
+                                      `• ${c.full_name} (${c.plan_name}) - Vence en ${c.daysLeft} días`
+                                   ).join('%0A')
+                                   
+                                   const message = `*REPORTE DE VENCIMIENTOS (PRÓXIMOS 7 DÍAS)*%0A%0A${reportLines}%0A%0AFavor de gestionar los cobros correspondientes.`
+                                   
+                                   const adminPhone = stats.admins.find((a: any) => a.phone)?.phone || ''
+                                   window.open(`https://wa.me/${adminPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank')
+                                }}
+                             >
+                                <MessageCircle className="w-3 h-3" /> Reportar WA
+                             </Button>
+                          </div>
                       </div>
                    </div>
                    <span className="text-3xl sm:text-4xl font-black text-amber-500 tracking-tighter">{stats.soonToExpire}</span>

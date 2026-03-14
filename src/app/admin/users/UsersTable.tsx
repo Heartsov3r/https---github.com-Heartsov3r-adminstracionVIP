@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useState, useTransition } from 'react'
+import React, { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus } from 'lucide-react'
+import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus, Search, AlertTriangle } from 'lucide-react'
 import { deleteUser, assignPlanToUser, renewMembership } from './actions'
 import { updateUserProfile, addMembershipDays } from './[id]/actions'
 import {
@@ -16,32 +16,58 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { PaginationControls } from '@/components/ui/pagination-controls'
+
+const ITEMS_PER_PAGE = 20
 
 export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   
   // Filtramos para mostrar SOLO a los clientes en esta tabla
-  const clients = users.filter(u => u.role === 'client')
+  const allFilteredClients = useMemo(() => {
+    const allClients = users.filter(u => u.role === 'client')
+    if (!searchTerm) return allClients
+    
+    return allClients.filter(c => 
+      c.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  }, [users, searchTerm])
+
+  const totalPages = Math.ceil(allFilteredClients.length / ITEMS_PER_PAGE)
+  
+  const paginatedClients = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE
+    return allFilteredClients.slice(start, start + ITEMS_PER_PAGE)
+  }, [allFilteredClients, currentPage])
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
 
   // States para modales
   const [editUser, setEditUser] = useState<any>(null)
   const [daysUser, setDaysUser] = useState<any>(null)
   const [planUser, setPlanUser] = useState<any>(null)
   const [renewUser, setRenewUser] = useState<any>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  function handleDelete(id: string) {
-    if (confirm('¿Estás seguro de desactivar/eliminar a este cliente permanentemente?')) {
-      startTransition(async () => {
-        const res = await deleteUser(id)
-        if (res.error) alert(`Error al eliminar: ${res.error}`)
-      })
-    }
+  function handleDelete() {
+    if (!deleteId) return
+    startTransition(async () => {
+      const res = await deleteUser(deleteId)
+      if (res.error) alert(`Error al eliminar: ${res.error}`)
+      else setDeleteId(null)
+    })
   }
 
   // --- Handlers de modales ---
@@ -97,104 +123,129 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
 
   return (
     <>
-      <div className="glass-card rounded-3xl overflow-hidden border border-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <Table>
-          <TableHeader className="bg-muted/30">
-            <TableRow className="border-b border-white/5 hover:bg-transparent">
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre del Cliente</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Suscripción & Estatus</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground text-right">Manejo</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {clients.map((user) => {
-               // Calcular días restantes si tiene membresía
-               let diasRestantes = 0
-               let isValid = false
-               let planName = 'Personalizada'
+      <div className="space-y-4">
+        {/* BUSCADOR */}
+        <div className="relative group max-w-md">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+            <Search className="w-5 h-5" />
+          </div>
+          <Input 
+            placeholder="Buscar por nombre o correo..." 
+            className="pl-12 h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20 focus:border-primary/50 transition-all font-medium text-base shadow-xl"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
 
-               if (user.latestMembership && !isNaN(new Date(user.latestMembership.end_date).getTime())) {
-                 const endDate = new Date(user.latestMembership.end_date)
-                 diasRestantes = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-                 isValid = diasRestantes > 0
-                 planName = plans.find(p => p.id === user.latestMembership.plan_id)?.name || planName
-               }
+        <div className="glass-card rounded-3xl overflow-hidden border border-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow className="border-b border-white/5 hover:bg-transparent">
+                <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Nombre del Cliente</TableHead>
+                <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Suscripción & Estatus</TableHead>
+                <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground text-right">Manejo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedClients.map((user) => {
+                 // Calcular días restantes si tiene membresía
+                 let diasRestantes = 0
+                 let isValid = false
+                 let planName = 'Personalizada'
 
-               return (
-                <TableRow key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
-                  <TableCell className="py-5 px-6">
-                    <Link href={`/admin/users/${user.id}`} className="flex items-center gap-4 group/link">
-                       <Avatar className="w-10 h-10 border border-primary/20 group-hover/link:border-primary/50 transition-colors shadow-lg shadow-primary/5">
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
-                          <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
-                       </Avatar>
-                       <div className="flex flex-col">
-                          <span className="font-bold text-sm text-foreground group-hover/link:text-primary transition-colors">
-                            {user.full_name || 'Sin Nombre'}
-                          </span>
-                          <span className="text-xs text-muted-foreground font-medium">{user.email}</span>
-                       </div>
-                    </Link>
-                  </TableCell>
-                  
-                  <TableCell className="py-5 px-6">
-                    {isValid ? (
-                      <div className="flex items-center gap-3">
-                          <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter premium-gradient text-white shadow-md shadow-primary/20">
-                             {planName}
-                          </div>
-                          <div className="flex flex-col">
-                             <div className="flex items-center gap-1.5 font-black text-xs text-emerald-500">
-                                <Clock className="w-3 h-3" />
-                                {diasRestantes} DÍAS RESTANTES
-                             </div>
-                             <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
-                                <div 
-                                    className="h-full accent-gradient-green rounded-full shadow-[0_0_8px_rgba(52,211,153,0.4)]" 
-                                    style={{ width: `${Math.min(100, (diasRestantes / 30) * 100)}%` }} 
-                                />
-                             </div>
-                          </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                         <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-red-500/10 text-red-500 border border-red-500/20">
-                             Expirado
+                 if (user.latestMembership && !isNaN(new Date(user.latestMembership.end_date).getTime())) {
+                   const endDate = new Date(user.latestMembership.end_date)
+                   diasRestantes = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                   isValid = diasRestantes > 0
+                   planName = plans.find(p => p.id === user.latestMembership.plan_id)?.name || planName
+                 }
+
+                 return (
+                  <TableRow key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                    <TableCell className="py-5 px-6">
+                      <Link href={`/admin/users/${user.id}`} className="flex items-center gap-4 group/link">
+                         <Avatar className="w-10 h-10 border border-primary/20 group-hover/link:border-primary/50 transition-colors shadow-lg shadow-primary/5">
+                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} />
+                            <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
+                         </Avatar>
+                         <div className="flex flex-col">
+                            <span className="font-bold text-sm text-foreground group-hover/link:text-primary transition-colors">
+                              {user.full_name || 'Sin Nombre'}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-medium">{user.email}</span>
                          </div>
-                         <span className="text-xs font-bold text-muted-foreground italic">
-                            {user.latestMembership ? `Terminó hace ${Math.abs(diasRestantes)}d` : 'Sin plan asociado'}
-                         </span>
-                      </div>
-                    )}
-                  </TableCell>
+                      </Link>
+                    </TableCell>
+                    
+                    <TableCell className="py-5 px-6">
+                      {isValid ? (
+                        <div className="flex items-center gap-3">
+                            <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter premium-gradient text-white shadow-md shadow-primary/20">
+                               {planName}
+                            </div>
+                            <div className="flex flex-col">
+                               <div className="flex items-center gap-1.5 font-black text-xs text-emerald-500">
+                                  <Clock className="w-3 h-3" />
+                                  {diasRestantes} DÍAS RESTANTES
+                               </div>
+                               <div className="w-24 h-1 bg-white/10 rounded-full mt-1 overflow-hidden">
+                                  <div 
+                                      className="h-full accent-gradient-green rounded-full shadow-[0_0_8px_rgba(52,211,153,0.4)]" 
+                                      style={{ width: `${Math.min(100, (diasRestantes / 30) * 100)}%` }} 
+                                  />
+                               </div>
+                            </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                           <div className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter bg-red-500/10 text-red-500 border border-red-500/20">
+                               Expirado
+                           </div>
+                           <span className="text-xs font-bold text-muted-foreground italic">
+                              {user.latestMembership ? `Terminó hace ${Math.abs(diasRestantes)}d` : 'Sin plan asociado'}
+                           </span>
+                        </div>
+                      )}
+                    </TableCell>
 
-                  <TableCell className="py-5 px-6 text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white/5 border-white/10 rounded-xl font-bold gap-2 hover:bg-primary hover:text-white hover:border-transparent transition-all"
-                      onClick={() => setEditUser(user)}
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      Gestionar
-                    </Button>
+                    <TableCell className="py-5 px-6 text-right">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-white/5 border-white/10 rounded-xl font-bold gap-2 hover:bg-primary hover:text-white hover:border-transparent transition-all"
+                        onClick={() => setEditUser(user)}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        Gestionar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+              
+              {paginatedClients.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-40 text-center text-muted-foreground font-medium bg-muted/10">
+                     <div className="flex flex-col items-center gap-2 opacity-50">
+                        {searchTerm ? <Search className="w-12 h-12" /> : <Users className="w-12 h-12" />}
+                        {searchTerm ? `No se encontraron resultados para "${searchTerm}"` : 'No hay clientes registrados en el sistema.'}
+                     </div>
                   </TableCell>
                 </TableRow>
-              )
-            })}
-            
-            {clients.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="h-40 text-center text-muted-foreground font-medium bg-muted/10">
-                   <div className="flex flex-col items-center gap-2 opacity-50">
-                      <Users className="w-12 h-12" />
-                      No hay clientes registrados en el sistema.
-                   </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-white/5 bg-white/[0.02]">
+               <PaginationControls 
+                currentPage={currentPage} 
+                totalPages={totalPages} 
+                onPageChange={setCurrentPage} 
+               />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* MODAL MAESTRO: EDITAR CLIENTE */}
@@ -310,7 +361,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                     variant="ghost"
                     className="w-full text-red-500/60 hover:text-red-500 hover:bg-red-500/5 rounded-xl text-xs font-bold h-11 transition-all"
                     onClick={() => {
-                      handleDelete(editUser.id);
+                      setDeleteId(editUser.id);
                       setEditUser(null);
                     }}
                   >
@@ -326,6 +377,29 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL ELIMINAR (PREMIUM) */}
+      <Dialog open={!!deleteId} onOpenChange={(val) => !val && setDeleteId(null)}>
+        <DialogContent className="glass-card border-none md:max-w-sm rounded-[2rem] p-8">
+           <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500">
+                 <AlertTriangle className="w-10 h-10 animate-pulse" />
+              </div>
+              <div>
+                 <DialogTitle className="text-2xl font-black">¿Estás seguro?</DialogTitle>
+                 <DialogDescription className="text-muted-foreground font-medium mt-2">
+                   Esta acción desactivará al cliente permanentemente. Todos sus datos serán inaccesibles.
+                 </DialogDescription>
+              </div>
+              <div className="flex gap-3 w-full">
+                 <Button variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setDeleteId(null)}>Cancelar</Button>
+                 <Button variant="destructive" className="flex-1 bg-red-600 hover:bg-red-700 font-black h-12 rounded-2xl shadow-lg shadow-red-500/20" onClick={handleDelete} disabled={isPending}>
+                    {isPending ? 'Eliminando...' : 'Sí, Eliminar'}
+                 </Button>
+              </div>
+           </div>
         </DialogContent>
       </Dialog>
 
@@ -440,4 +514,3 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     </>
   )
 }
-
