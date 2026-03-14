@@ -21,7 +21,6 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { ExportExcelButton } from '@/components/admin/ExportExcelButton'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 
 const ITEMS_PER_PAGE = 20
@@ -125,32 +124,16 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
   return (
     <>
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* BUSCADOR */}
-          <div className="relative group max-w-md w-full">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
-              <Search className="w-5 h-5" />
-            </div>
-            <Input 
-              placeholder="Buscar por nombre o correo..." 
-              className="pl-12 h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20 focus:border-primary/50 transition-all font-medium text-base shadow-xl"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {/* BUSCADOR */}
+        <div className="relative group max-w-md">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-muted-foreground group-focus-within:text-primary transition-colors">
+            <Search className="w-5 h-5" />
           </div>
-
-          <ExportExcelButton 
-            data={allFilteredClients} 
-            filename="clientes_vip"
-            headers={[
-              { key: 'full_name', label: 'Nombre Completo' },
-              { key: 'email', label: 'Correo Electrónico' },
-              { key: 'phone', label: 'Teléfono/WhatsApp' },
-              { key: 'role', label: 'Rol' },
-              { key: 'created_at', label: 'Fecha Registro' },
-              { key: 'latestMembership.plan_name', label: 'Plan Actual' },
-              { key: 'latestMembership.end_date', label: 'Fecha Vencimiento' }
-            ]}
+          <Input 
+            placeholder="Buscar por nombre o correo..." 
+            className="pl-12 h-14 bg-white/5 border-white/5 rounded-2xl focus:ring-primary/20 focus:border-primary/50 transition-all font-medium text-base shadow-xl"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
