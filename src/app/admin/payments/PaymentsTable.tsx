@@ -56,16 +56,17 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
 
   return (
     <>
-      <div className="glass-card rounded-3xl overflow-hidden border border-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <Table>
+      <div className="glass-card rounded-2xl sm:rounded-3xl overflow-hidden border border-white/5 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="overflow-x-auto">
+        <Table className="min-w-[700px]">
           <TableHeader className="bg-muted/30">
             <TableRow className="border-b border-white/5 hover:bg-transparent">
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground italic">Asignación</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Cliente</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Plan</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Finanzas</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground">Estado</TableHead>
-              <TableHead className="py-6 px-6 font-black text-xs uppercase tracking-widest text-muted-foreground text-right">Acciones</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground italic">Asignación</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Cliente</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Plan</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Finanzas</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground">Estado</TableHead>
+              <TableHead className="py-4 px-3 sm:py-6 sm:px-6 font-black text-[10px] sm:text-xs uppercase tracking-widest text-muted-foreground text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -200,26 +201,27 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* Modal: Registrar Pago Nuevo */}
       <Dialog open={!!paymentMembership} onOpenChange={(o) => { if (!o) { setPaymentMembership(null); setUploadFile(null); } }}>
-        <DialogContent className="glass-card border-none md:max-w-md rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/10 shadow-2xl">
-          <div className="accent-gradient-blue p-8 text-white relative">
-             <div className="relative z-10 flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                   <CreditCard className="w-7 h-7 text-white" />
+        <DialogContent className="glass-card border-none max-w-[95vw] sm:max-w-md rounded-2xl sm:rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="accent-gradient-blue p-5 sm:p-8 text-white relative">
+             <div className="relative z-10 flex items-center gap-3 sm:gap-4">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0">
+                   <CreditCard className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
                 </div>
                 <div>
-                   <DialogTitle className="text-2xl font-black">Registrar Cobro</DialogTitle>
-                   <p className="text-white/70 text-sm font-medium">Abono a cuenta del plan activo</p>
+                   <DialogTitle className="text-xl sm:text-2xl font-black">Registrar Cobro</DialogTitle>
+                   <p className="text-white/70 text-xs sm:text-sm font-medium">Abono a cuenta del plan activo</p>
                 </div>
              </div>
-             <ArrowUpRight className="absolute top-0 right-0 w-32 h-32 opacity-10 rotate-12 scale-125" />
+             <ArrowUpRight className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 opacity-10 rotate-12 scale-125" />
           </div>
 
           {paymentMembership && (
-          <form onSubmit={handleRegisterPayment} className="p-8 space-y-8">
+          <form onSubmit={handleRegisterPayment} className="p-5 sm:p-8 space-y-6 sm:space-y-8">
              <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-3">
                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
                    <span>Saldo Pendiente</span>
@@ -256,9 +258,9 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
                 </div>
              </div>
 
-             <div className="flex gap-4 pt-2">
-                <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-xl" onClick={() => setPaymentMembership(null)}>Cancelar</Button>
-                <Button type="submit" className="flex-1 accent-gradient-blue h-12 rounded-xl font-black shadow-lg shadow-blue-500/25 text-white" disabled={isPending}>
+             <div className="flex gap-3 sm:gap-4 pt-2">
+                <Button type="button" variant="ghost" className="flex-1 font-bold h-11 sm:h-12 rounded-xl text-sm" onClick={() => setPaymentMembership(null)}>Cancelar</Button>
+                <Button type="submit" className="flex-1 accent-gradient-blue h-11 sm:h-12 rounded-xl font-black shadow-lg shadow-blue-500/25 text-white text-sm" disabled={isPending}>
                    {isPending ? 'Procesando...' : 'Confirmar Cobro'}
                 </Button>
              </div>
@@ -269,20 +271,20 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
 
       {/* Modal: Ver Detalles y Comprobantes (Historial) */}
       <Dialog open={!!detailsMembership} onOpenChange={(o) => { if (!o) setDetailsMembership(null) }}>
-        <DialogContent className="glass-card border-none md:max-w-lg rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/10 shadow-2xl">
-          <div className="bg-muted/30 p-8 border-b border-white/5">
-             <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground">
-                   <History className="w-6 h-6" />
+        <DialogContent className="glass-card border-none max-w-[95vw] sm:max-w-lg rounded-2xl sm:rounded-[2.5rem] p-0 overflow-hidden ring-1 ring-white/10 shadow-2xl max-h-[90vh]">
+          <div className="bg-muted/30 p-5 sm:p-8 border-b border-white/5">
+             <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center text-muted-foreground shrink-0">
+                   <History className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                   <DialogTitle className="text-xl font-black italic uppercase tracking-tighter">Cronología de Pagos</DialogTitle>
-                   <p className="text-muted-foreground text-xs font-medium">Registro histórico de ingresos vinculados</p>
+                   <DialogTitle className="text-lg sm:text-xl font-black italic uppercase tracking-tighter">Cronología de Pagos</DialogTitle>
+                   <p className="text-muted-foreground text-[10px] sm:text-xs font-medium">Registro histórico de ingresos</p>
                 </div>
              </div>
           </div>
 
-          <div className="p-8 max-h-[60vh] overflow-y-auto scrollbar-thin space-y-6">
+          <div className="p-4 sm:p-8 max-h-[60vh] overflow-y-auto scrollbar-thin space-y-4 sm:space-y-6">
             {detailsMembership && (
                <div className="space-y-4">
                   {detailsMembership.manual_payments?.sort((a:any, b:any) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime()).map((p: any) => (
