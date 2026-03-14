@@ -110,6 +110,18 @@ export async function createUser(formData: FormData) {
     newUserId = data?.user?.id
   }
 
+  // 2. Sincronizar teléfono y datos adicionales en el perfil público (Profiles)
+  // Esto es necesario porque el trigger de la base de datos no incluye todos los campos
+  if (newUserId) {
+    await supabase
+      .from('profiles')
+      .update({ 
+        full_name: fullName, 
+        phone: phone // Sincronización explícita del teléfono
+      })
+      .eq('id', newUserId)
+  }
+
   // 3. Crear membresía automática si se seleccionó un plan
   if (newUserId && planId && planId !== 'none') {
     // Buscamos duración del plan para calcular end_date
