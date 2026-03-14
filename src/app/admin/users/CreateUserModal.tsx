@@ -128,7 +128,7 @@ export function CreateUserModal({ plans }: { plans: any[] }) {
                 <p className="text-sm text-muted-foreground mb-2">
                   Puedes asignarle directamente el Plan VIP para que sus 31 días se activen desde este momento.
                 </p>
-                <Select value={planId} onValueChange={(v) => setPlanId(v as string)}>
+                <Select value={planId} onValueChange={(v: string | null) => setPlanId(v || defaultPlanId)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccionar Plan" />
                   </SelectTrigger>
