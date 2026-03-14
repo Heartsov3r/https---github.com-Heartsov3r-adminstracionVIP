@@ -172,14 +172,17 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
                         >
                            <History className="h-4 w-4 opacity-50"/> Historial
                         </Button>
-                        <Button 
-                           variant="default" 
-                           size="sm"
-                           className="accent-gradient-blue rounded-xl h-9 font-black text-xs gap-2 shadow-lg shadow-blue-500/20"
-                           onClick={() => setPaymentMembership(membership)}
-                        >
-                           <CreditCard className="h-4 w-4"/> Cobrar
-                        </Button>
+                        
+                        {expectedTotal > 0 && totalPaid < expectedTotal && (
+                          <Button 
+                             variant="default" 
+                             size="sm"
+                             className="accent-gradient-blue rounded-xl h-9 font-black text-xs gap-2 shadow-lg shadow-blue-500/20"
+                             onClick={() => setPaymentMembership(membership)}
+                          >
+                             <CreditCard className="h-4 w-4"/> Cobrar
+                          </Button>
+                        )}
                       </div>
                    </TableCell>
                  </TableRow>
