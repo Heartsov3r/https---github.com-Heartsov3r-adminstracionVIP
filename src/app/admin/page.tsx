@@ -16,6 +16,7 @@ import {
   MessageCircle
 } from 'lucide-react'
 import { WhatsAppReportButton } from './components/WhatsAppReportButton'
+import { WhatsAppClientButton } from './components/WhatsAppClientButton'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ClientDateTime } from '@/components/ui/client-datetime'
@@ -173,7 +174,13 @@ export default async function AdminDashboardPage() {
                                   </div>
                               </div>
                               <div className="flex flex-col items-end shrink-0 ml-2">
-                                 <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md">{user.daysLeft} días</span>
+                                 <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md mb-1">{user.daysLeft} días</span>
+                                 <WhatsAppClientButton 
+                                    phone={user.phone} 
+                                    fullName={user.full_name} 
+                                    planName={user.plan_name} 
+                                    daysLeft={user.daysLeft} 
+                                 />
                               </div>
                           </div>
                        ))
@@ -210,7 +217,15 @@ export default async function AdminDashboardPage() {
                                       <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest truncate">Finalizó {new Date(user.end_date).toLocaleDateString()}</span>
                                   </div>
                               </div>
-                              <ArrowUpRight className="w-4 h-4 text-red-500 opacity-20 shrink-0" />
+                              <div className="flex items-center gap-2">
+                                 <WhatsAppClientButton 
+                                    phone={user.phone} 
+                                    fullName={user.full_name} 
+                                    planName={user.plan_name} 
+                                    isExpired 
+                                 />
+                                 <ArrowUpRight className="w-4 h-4 text-red-500 opacity-20 shrink-0" />
+                              </div>
                           </div>
                        ))
                    ) : (
