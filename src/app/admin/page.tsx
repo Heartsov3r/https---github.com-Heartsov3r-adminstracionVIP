@@ -15,7 +15,6 @@ import {
   Clock,
   MessageCircle
 } from 'lucide-react'
-import { WhatsAppReportButton } from './components/WhatsAppReportButton'
 import { WhatsAppClientButton } from './components/WhatsAppClientButton'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -155,7 +154,6 @@ export default async function AdminDashboardPage() {
                           <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">Alerta Prox.</h3>
                           <div className="flex items-center gap-3">
                              <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Vencen en 7 días o menos</p>
-                             <WhatsAppReportButton stats={stats} />
                           </div>
                       </div>
                    </div>
