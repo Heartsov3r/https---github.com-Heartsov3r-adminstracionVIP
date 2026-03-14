@@ -1,8 +1,7 @@
 import { fetchAdminLogs } from './actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { ClientDateTime } from '@/components/ui/client-datetime'
 
 export default async function AdminLogsPage() {
   const { data: logs, error } = await fetchAdminLogs()
@@ -42,8 +41,19 @@ export default async function AdminLogsPage() {
               {logs && logs.length > 0 ? (
                 logs.map((log) => (
                   <TableRow key={log.id}>
-                    <TableCell className="text-sm whitespace-nowrap">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss", { locale: es })}
+                    <TableCell className="text-sm font-medium tabular-nums text-foreground/80">
+                      <ClientDateTime 
+                        date={log.created_at} 
+                        options={{ 
+                          day: '2-digit', 
+                          month: '2-digit', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        }} 
+                      />
                     </TableCell>
                     <TableCell>
                       <span className="font-medium text-sm">{log.admin?.full_name || 'Desconocido'}</span>

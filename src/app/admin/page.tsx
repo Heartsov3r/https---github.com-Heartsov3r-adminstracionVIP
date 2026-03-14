@@ -213,7 +213,12 @@ export default async function AdminDashboardPage() {
                           </div>
                           <div className="text-right">
                              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500/60 bg-emerald-500/5 px-3 py-1 rounded-full mb-1">Completado</div>
-                             <div className="text-[9px] text-muted-foreground font-black opacity-40">{format(new Date(act.date), "HH:mm '·' dd MMM")}</div>
+                             <div className="text-[9px] text-muted-foreground font-black opacity-40">
+                                <ClientDateTime 
+                                  date={act.date} 
+                                  options={{ hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short', hour12: false }} 
+                                />
+                             </div>
                           </div>
                        </div>
                     ))

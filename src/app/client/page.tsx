@@ -15,8 +15,7 @@ import {
   ExternalLink,
   Zap
 } from 'lucide-react'
-import { format, differenceInDays } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { differenceInDays } from 'date-fns'
 import { getBusinessDate } from '@/lib/utils'
 import { ClientDateTime } from '@/components/ui/client-datetime'
 
@@ -108,11 +107,11 @@ export default async function ClientPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className="text-white/50 text-[10px] font-black uppercase tracking-widest mb-1">Inicio</p>
-                    <p className="text-base font-bold">{format(new Date(latestMembership.start_date), 'dd MMM yyyy', { locale: es })}</p>
+                    <p className="text-base font-bold"><ClientDateTime date={latestMembership.start_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} /></p>
                   </div>
                   <div>
                     <p className="text-white/50 text-[10px] font-black uppercase tracking-widest mb-1">Vencimiento</p>
-                    <p className="text-base font-bold">{format(new Date(latestMembership.end_date), 'dd MMM yyyy', { locale: es })}</p>
+                    <p className="text-base font-bold"><ClientDateTime date={latestMembership.end_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} /></p>
                   </div>
                 </div>
               </>
@@ -179,7 +178,7 @@ export default async function ClientPage() {
                     </div>
                     <div className="text-right flex flex-col items-end gap-2">
                       <p className="text-xs text-muted-foreground font-bold">
-                        {format(new Date(p.payment_date), 'dd MMM yyyy', { locale: es })}
+                        <ClientDateTime date={p.payment_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
                       </p>
                       {p.payment_receipts?.length > 0 && (
                         <a href={p.payment_receipts[0].file_url} target="_blank" rel="noreferrer"
@@ -237,7 +236,7 @@ export default async function ClientPage() {
                     <Calendar className="w-3 h-3" /> Miembro desde
                   </p>
                   <p className="text-base font-bold text-foreground">
-                    {format(new Date((profile as any).created_at), "MMMM yyyy", { locale: es })}
+                    <ClientDateTime date={(profile as any).created_at} options={{ month: 'long', year: 'numeric' }} />
                   </p>
                 </div>
               )}

@@ -1,8 +1,7 @@
 'use client'
 
 import React, { useState, useTransition } from 'react'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
+import { ClientDateTime } from '@/components/ui/client-datetime'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -109,10 +108,10 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
                    <TableCell className="py-5 px-6">
                       <div className="flex flex-col">
                          <span className="text-xs font-black text-foreground uppercase tracking-tight">
-                            {format(new Date(membership.created_at), "dd MMM yyyy", { locale: es })}
+                            <ClientDateTime date={membership.created_at} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
                          </span>
                          <span className="text-[10px] text-muted-foreground font-medium italic opacity-60">
-                            vence {format(new Date(membership.end_date), "dd/MM/yy")}
+                            vence <ClientDateTime date={membership.end_date} options={{ day: '2-digit', month: '2-digit', year: '2-digit' }} />
                          </span>
                       </div>
                    </TableCell>
@@ -289,7 +288,10 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
                               <div className="flex flex-col">
                                   <div className="text-2xl font-black tracking-tighter text-emerald-500">${Number(p.amount).toFixed(2)}</div>
                                   <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-50">
-                                     {format(new Date(p.payment_date), "dd MMM, yyyy · HH:mm", { locale: es })}
+                                      <ClientDateTime 
+                                        date={p.payment_date} 
+                                        options={{ day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }} 
+                                      />
                                   </div>
                               </div>
                               <div className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-tighter ring-1 ring-emerald-500/20">
