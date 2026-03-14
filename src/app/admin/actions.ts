@@ -201,3 +201,76 @@ export async function registerNewAdmin(formData: any) {
   
   return { data, error: null }
 }
+
+export async function fetchFinancialStats() {
+  const supabase = await createClient()
+  const { data: payments, error } = await supabase
+    .from('manual_payments')
+    .select('amount, payment_date')
+    .order('payment_date', { ascending: true })
+
+  if (error) return { data: null, error: error.message }
+  if (!payments || payments.length === 0) return { data: { monthly: [], yearly: [], grandTotal: 0, percentageChange: 0 }, error: null }
+
+  const monthlyData: Record<string, { month: string, year: number, total: number, count: number }> = {}
+  const yearlyData: Record<number, { year: number, total: number, count: number }> = {}
+  
+  let grandTotal = 0
+  
+  payments.forEach(p => {
+    const date = new Date(p.payment_date)
+    const amount = Number(p.amount)
+    
+    const year = date.getFullYear()
+    const monthIndex = date.getMonth()
+    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    const monthKey = `${year}-${monthIndex}`
+
+    // Mensual
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { month: monthNames[monthIndex], year, total: 0, count: 0 }
+    }
+    monthlyData[monthKey].total += amount
+    monthlyData[monthKey].count += 1
+
+    // Anual
+    if (!yearlyData[year]) {
+      yearlyData[year] = { year, total: 0, count: 0 }
+    }
+    yearlyData[year].total += amount
+    yearlyData[year].count += 1
+
+    grandTotal += amount
+  })
+
+  // Convertir a arrays ordenados
+  const monthlyArray = Object.values(monthlyData).sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year
+    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    return monthNames.indexOf(a.month) - monthNames.indexOf(b.month)
+  })
+
+  const yearlyArray = Object.values(yearlyData).sort((a, b) => a.year - b.year)
+
+  // Calcular comparativa (vs mes anterior)
+  let percentageChange = 0
+  if (monthlyArray.length >= 2) {
+    const lastMonth = monthlyArray[monthlyArray.length - 1].total
+    const prevMonth = monthlyArray[monthlyArray.length - 2].total
+    if (prevMonth > 0) {
+      percentageChange = ((lastMonth - prevMonth) / prevMonth) * 100
+    } else {
+      percentageChange = 100 // Crecimiento infinito si el anterior fue 0
+    }
+  }
+
+  return {
+    data: {
+      monthly: monthlyArray,
+      yearly: yearlyArray,
+      grandTotal,
+      percentageChange
+    },
+    error: null
+  }
+}
