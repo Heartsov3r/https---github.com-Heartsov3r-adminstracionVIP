@@ -15,6 +15,7 @@ import {
   Clock,
   MessageCircle
 } from 'lucide-react'
+import { WhatsAppReportButton } from './components/WhatsAppReportButton'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ClientDateTime } from '@/components/ui/client-datetime'
@@ -153,29 +154,7 @@ export default async function AdminDashboardPage() {
                           <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">Alerta Prox.</h3>
                           <div className="flex items-center gap-3">
                              <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Vencen en 7 días o menos</p>
-                             <Button 
-                                size="sm" 
-                                variant="default" 
-                                className="bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black uppercase tracking-widest h-7 px-2 rounded-lg shadow-lg shadow-emerald-500/20 gap-1"
-                                onClick={() => {
-                                   const soonList = stats.details.soonToExpireList
-                                   if (soonList.length === 0) {
-                                      alert("No hay vencimientos próximos en 7 días para reportar.")
-                                      return
-                                   }
-                                   
-                                   const reportLines = soonList.map((c: any) => 
-                                      `• ${c.full_name} (${c.plan_name}) - Vence en ${c.daysLeft} días`
-                                   ).join('%0A')
-                                   
-                                   const message = `*REPORTE DE VENCIMIENTOS (PRÓXIMOS 7 DÍAS)*%0A%0A${reportLines}%0A%0AFavor de gestionar los cobros correspondientes.`
-                                   
-                                   const adminPhone = stats.admins.find((a: any) => a.phone)?.phone || ''
-                                   window.open(`https://wa.me/${adminPhone.replace(/[^0-9]/g, '')}?text=${message}`, '_blank')
-                                }}
-                             >
-                                <MessageCircle className="w-3 h-3" /> Reportar WA
-                             </Button>
+                             <WhatsAppReportButton stats={stats} />
                           </div>
                       </div>
                    </div>
