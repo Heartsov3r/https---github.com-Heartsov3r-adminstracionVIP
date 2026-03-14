@@ -105,7 +105,7 @@ export default function PaymentsTable({ memberships }: { memberships: any[] }) {
           <div className="glass-card flex items-center gap-2 px-4 py-2 rounded-2xl border border-white/5 bg-white/5 shadow-xl">
             <Filter className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs font-black uppercase tracking-widest text-muted-foreground mr-2">Filtrar por:</span>
-            <Select value={filterStatus} onValueChange={(val: any) => setFilterStatus(val)}>
+            <Select value={filterStatus} onValueChange={(val: string | null) => setFilterStatus((val as any) || 'all')}>
               <SelectTrigger className="h-8 w-[140px] bg-transparent border-none focus:ring-0 text-xs font-bold uppercase p-0">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>

@@ -67,7 +67,7 @@ export function LogsClient({ logs }: { logs: any[] }) {
            <Filter className="w-5 h-5 text-muted-foreground" />
            <div className="flex-1">
              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">Tipo de Acción</p>
-             <Select value={actionFilter} onValueChange={setActionFilter}>
+             <Select value={actionFilter} onValueChange={(val: string | null) => setActionFilter(val || 'all')}>
                 <SelectTrigger className="h-6 bg-transparent border-none focus:ring-0 text-sm font-bold p-0">
                   <SelectValue placeholder="Todas las acciones" />
                 </SelectTrigger>
