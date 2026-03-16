@@ -7,24 +7,27 @@ import { getBusinessDate } from '@/lib/utils'
 export async function fetchDashboardStats() {
   const supabase = await createClient()
 
-  // 1. Obtener todos los perfiles "clientes" y "admins"
+  // 1. Obtener todos los perfiles "clientes" y "admins" con fecha de registro
   const { data: allProfiles, error: profilesError } = await supabase
     .from('profiles')
-    .select('id, full_name, email, phone, role')
+    .select('id, full_name, email, phone, role, created_at')
 
   const clients = allProfiles?.filter(p => p.role === 'client') || []
   const admins = allProfiles?.filter(p => p.role === 'admin') || []
 
-  // 2. Obtener todas las membresías con sus planes
+  // 2. Obtener todas las membresías con sus planes y pagos asociados para calcular deudas
   const { data: memberships, error: membershipsError } = await supabase
     .from('memberships')
-    .select('*, plans(*)')
+    .select('*, plans(*), manual_payments(amount)')
     .order('end_date', { ascending: false })
 
-  // 3. Obtener Pagos de este mes y de HOY
+  // 3. Obtener Pagos de este mes y preparar tendencia de últimos 7 días
   const nowInPeru = getBusinessDate()
   const today = new Date(nowInPeru)
   today.setHours(0, 0, 0, 0)
+  
+  const sevenDaysAgo = new Date(today)
+  sevenDaysAgo.setDate(today.getDate() - 6)
   
   const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
   
@@ -45,17 +48,15 @@ export async function fetchDashboardStats() {
   if (membershipsError) return { data: null, error: `Error membresías: ${membershipsError.message}` }
   if (paymentsError) return { data: null, error: `Error pagos: ${paymentsError.message}` }
 
-  // Lógica de Estado
+  // Lógica de Estado y Saldo Pendiente Total
   let activeCount = 0
   let soonToExpireCount = 0
   let expiredCount = 0
+  let totalPendingBalance = 0
   const noMembershipCount = clients.length
 
-  // Agrupamos la membresia más reciente por usuario
   const latestMemberships = new Map()
   const planCounts: Record<string, number> = {}
-  
-  // Detalle de listas
   const activeVIPs: any[] = []
   const soonToExpireList: any[] = []
   const expiredList: any[] = []
@@ -66,13 +67,20 @@ export async function fetchDashboardStats() {
       if (!latestMemberships.has(m.user_id)) {
           const profile = (allProfiles?.find(p => p.id === m.user_id) || {}) as any
           const planName = m.plans?.name || 'Personalizado'
+          const planPrice = m.plans?.price || 0
+          
+          // Cálculo de deuda real por membresía
+          const totalPaidInM = m.manual_payments ? m.manual_payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0) : 0
+          const debt = Math.max(0, planPrice - totalPaidInM)
+
           const userObj = {
               id: m.user_id,
               full_name: profile.full_name || 'Sin Nombre',
               email: profile.email,
               phone: profile.phone,
               plan_name: planName,
-              end_date: m.end_date
+              end_date: m.end_date,
+              debt: debt
           }
           latestMemberships.set(m.user_id, m)
           planCounts[planName] = (planCounts[planName] || 0) + 1
@@ -82,30 +90,46 @@ export async function fetchDashboardStats() {
 
           if (diff < 0) {
               expiredCount++
+              if (debt > 0) totalPendingBalance += debt
               if (expiredList.length < 5) expiredList.push(userObj)
-          } else if (diff <= 7) {
-              soonToExpireCount++
-              activeCount++
-              if (soonToExpireList.length < 5) soonToExpireList.push({ ...userObj, daysLeft: diff })
           } else {
               activeCount++
-              if (activeVIPs.length < 5) activeVIPs.push(userObj)
+              if (debt > 0) totalPendingBalance += debt
+              if (diff <= 7) {
+                  soonToExpireCount++
+                  if (soonToExpireList.length < 5) soonToExpireList.push({ ...userObj, daysLeft: diff })
+              } else {
+                  if (activeVIPs.length < 5) activeVIPs.push(userObj)
+              }
           }
       }
   })
 
-  // Ingresos
+  // Ingresos y Tendencia Semanal de 7 días
   let monthlyRevenue = 0
   let dailyRevenue = 0
   const recentActivity: any[] = []
+  const weeklyTrend: Record<string, number> = {}
+  
+  // Inicializar tendencia de 7 días con ceros
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sevenDaysAgo)
+    d.setDate(sevenDaysAgo.getDate() + i)
+    weeklyTrend[d.toISOString().split('T')[0]] = 0
+  }
 
   payments?.forEach(p => {
     const amount = Number(p.amount)
+    const pDateStr = p.payment_date.split('T')[0]
     monthlyRevenue += amount
     
     const pDate = new Date(p.payment_date)
     if (pDate >= today) {
       dailyRevenue += amount
+    }
+
+    if (weeklyTrend[pDateStr] !== undefined) {
+      weeklyTrend[pDateStr] += amount
     }
 
     if (recentActivity.length < 5) {
@@ -119,15 +143,24 @@ export async function fetchDashboardStats() {
     }
   })
 
+  // Crecimiento de Clientes (últimos 7 días)
+  const newClientsWeekly = clients.filter(c => {
+    if (!c.created_at) return false
+    return new Date(c.created_at) >= sevenDaysAgo
+  }).length
+
   return {
     data: {
       totalClients: noMembershipCount,
       activeMemberships: activeCount,
       soonToExpire: soonToExpireCount,
       expired: expiredCount,
+      totalPendingBalance,
       monthlyRevenue,
       dailyRevenue,
+      newClientsWeekly,
       planDistribution: Object.entries(planCounts).map(([name, value]) => ({ name, value })),
+      weeklyRevenueData: Object.entries(weeklyTrend).map(([date, amount]) => ({ date, amount })),
       recentActivity,
       admins: admins.map(a => ({ full_name: a.full_name, phone: a.phone })),
       details: {

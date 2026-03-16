@@ -18,7 +18,7 @@ export async function fetchUsers() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching users:', error)
+    console.error('Error fetching users:', JSON.stringify(error, null, 2))
     return { data: null, error: error.message }
   }
 
@@ -73,13 +73,27 @@ export async function createUser(formData: FormData) {
       email_confirm: true,
       user_metadata: {
         full_name: fullName,
-        phone: phone, // Guardamos el teléfono
+        phone: phone,
         role: role
       }
     })
 
-    if (adminError) return { error: adminError.message }
-    newUserId = adminData?.user?.id
+    if (adminError) {
+      if (adminError.message.includes('already been registered')) {
+        // El usuario ya existe en AUTH. Intentamos buscar su ID para "reincribirlo" en PROFILES
+        const { data: { users } } = await adminSupabase.auth.admin.listUsers()
+        const found = users.find(u => u.email === email)
+        if (found) {
+          newUserId = found.id
+        } else {
+          return { error: adminError.message }
+        }
+      } else {
+        return { error: adminError.message }
+      }
+    } else {
+      newUserId = adminData?.user?.id
+    }
   } else {
     const { createClient: createAnonClient } = await import('@supabase/supabase-js')
     const anonSupabase = createAnonClient(
@@ -94,32 +108,39 @@ export async function createUser(formData: FormData) {
       options: {
         data: {
           full_name: fullName,
-          phone: phone, // Guardamos el teléfono
+          phone: phone,
           role: role
         }
       }
     })
 
     if (error) {
-       if (error.message.includes('rate limit')) {
-         return { error: "Límite de seguridad alcanzado. Espera o usa la Service Role Key." }
+       if (error.message.includes('already been registered')) {
+          // Si no tenemos service role, no podemos buscar el ID de otro usuario con el anon client por seguridad
+          return { error: "Este correo ya está registrado en el sistema de autenticación." }
        }
        return { error: error.message }
     }
-    // En signUp a veces data.user puede venir nulo si requiere verificación estricta de correo.
     newUserId = data?.user?.id
   }
 
   // 2. Sincronizar teléfono y datos adicionales en el perfil público (Profiles)
   // Esto es necesario porque el trigger de la base de datos no incluye todos los campos
   if (newUserId) {
-    await supabase
+    const { error: profileSyncError } = await supabase
       .from('profiles')
-      .update({ 
+      .upsert({ 
+        id: newUserId,
+        email: email,
         full_name: fullName, 
-        phone: phone // Sincronización explícita del teléfono
-      })
-      .eq('id', newUserId)
+        phone: phone,
+        role: role,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' })
+    
+    if (profileSyncError) {
+      console.error("Error syncing profile:", profileSyncError)
+    }
   }
 
   // 3. Crear membresía automática si se seleccionó un plan
@@ -152,24 +173,37 @@ export async function createUser(formData: FormData) {
 }
 
 export async function deleteUser(userId: string) {
-  // Para eliminar usuarios desde supabase hay 2 formas en Client:
-  // 1. RPCSql (admin flag)
-  // 2. Usar service role key en servidor. Puesto que este es un proyecto Next SSR, vamos a borrar de "profiles".
-  // Borrar profile en cascade NO borra auth.user usualmente, el trigger va hacia un lado.
-  // Pero el requerimiento es desactivar o borrar perfiles. Borraremos el Profile, lo cual quita su acceso app.
-  // En un caso real "Service Role Key" elimina auth.users íntegramente.
-
   const supabase = await createClient()
+  
+  // 1. Intentamos eliminar de Auth usando el cliente administrativo si hay Service Role Key
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (serviceRoleKey) {
+    try {
+      const { createClient: createAdminClient } = await import('@supabase/supabase-js')
+      const adminSupabase = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey,
+        { auth: { autoRefreshToken: false, persistSession: false } }
+      )
+      
+      const { error: authError } = await adminSupabase.auth.admin.deleteUser(userId)
+      if (authError) {
+        console.error('Error deleting user from Auth:', authError.message)
+      }
+    } catch (e) {
+      console.error('Failed to initialize admin client for deletion:', e)
+    }
+  }
 
-  // Eliminamos de la tabla pública directamente. Cascade en la BD puede estar mal configurado desde `profiles` hacia `auth.users`, 
-  // lo normal es al revés. Pero es suficiente remover su perfil público para bloquear el acceso lógico si validamos profiles.
+  // 2. Eliminamos de la tabla pública (Profiles)
+  // Nota: Si hay cascade en la BD desde auth.users, esto podría ser redundante pero asegura la eliminación.
   const { error } = await supabase.from('profiles').delete().eq('id', userId)
 
   if (error) {
     return { error: error.message }
   }
 
-  await logAdminAction('DELETE_USER', `Se eliminó perfil de usuario`, userId)
+  await logAdminAction('DELETE_USER', `Se eliminó perfil de usuario permanentemente`, userId)
 
   revalidatePath('/admin/users')
   return { success: true }
@@ -189,45 +223,10 @@ export async function toggleUserRole(userId: string, currentRole: string) {
     return { success: true }
 }
 
-export async function assignPlanToUser(userId: string, currentMembershipId: string | null, planId: string) {
-  const supabase = await createClient()
-
-  // Buscar duración del plan
-  const { data: planData } = await supabase.from('plans').select('duration_days').eq('id', planId).single()
-  if (!planData) return { error: 'Plan no encontrado' }
-
-  // Usar idéntica lógica que addMembershipDays pero desde aquí
-  if (!currentMembershipId) {
-    const startDate = new Date()
-    const endDate = new Date()
-    endDate.setDate(endDate.getDate() + planData.duration_days)
-
-    const { error } = await supabase.from('memberships').insert({
-      user_id: userId,
-      plan_id: planId,
-      start_date: startDate.toISOString(),
-      end_date: endDate.toISOString()
-    })
-    if (error) return { error: error.message }
-  } else {
-    // Sumar días a la existente y cambiarle el plan_id si se requiere
-    const { data: memData } = await supabase.from('memberships').select('end_date').eq('id', currentMembershipId).single()
-    if (!memData) return { error: 'Membresía no encontrada' }
-
-    const newEndDate = new Date(memData.end_date)
-    newEndDate.setDate(newEndDate.getDate() + planData.duration_days)
-
-    const { error } = await supabase.from('memberships')
-      .update({ end_date: newEndDate.toISOString(), plan_id: planId })
-      .eq('id', currentMembershipId)
-
-    if (error) return { error: error.message }
-  }
-
-  await logAdminAction('ASSIGN_PLAN', `Asignó el plan ${planData.duration_days} días`, userId)
-
-  revalidatePath('/admin/users')
-  return { success: true }
+export async function assignPlanToUser(userId: string, _currentMembershipId: string | null, planId: string) {
+  // Ignoramos el ID de membresía actual para forzar la creación de un nuevo registro
+  // y así generar un nuevo cobro pendiente independiente.
+  return renewMembership(userId, planId)
 }
 
 export async function renewMembership(userId: string, planId: string) {
@@ -238,20 +237,25 @@ export async function renewMembership(userId: string, planId: string) {
   if (!planData) return { error: 'Plan no encontrado' }
 
   // 2. Obtener la última membresía para ver cuándo termina
-  const { data: latestMem } = await supabase
+  // Usamos una consulta normal y tomamos el primer resultado para evitar errores de .single() si no hay registros
+  const { data: mems, error: memError } = await supabase
     .from('memberships')
     .select('end_date')
     .eq('user_id', userId)
     .order('end_date', { ascending: false })
     .limit(1)
-    .single()
 
+  if (memError) {
+    console.error('Error fetching latest membership:', memError)
+  }
+
+  const latestMem = mems && mems.length > 0 ? mems[0] : null
   let startDate = new Date()
   
   // Si tiene una membresía que termina en el futuro, la renovación empieza justo después
   if (latestMem && new Date(latestMem.end_date) > new Date()) {
     startDate = new Date(latestMem.end_date)
-    // Evitar solapamiento de segundos
+    // Evitar solapamiento de un segundo
     startDate.setSeconds(startDate.getSeconds() + 1)
   }
 

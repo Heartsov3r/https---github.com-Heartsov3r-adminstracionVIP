@@ -3,7 +3,8 @@
 import React, { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus, Search, AlertTriangle } from 'lucide-react'
+import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus, Search, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { deleteUser, assignPlanToUser, renewMembership } from './actions'
 import { updateUserProfile, addMembershipDays } from './[id]/actions'
 import {
@@ -65,8 +66,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     if (!deleteId) return
     startTransition(async () => {
       const res = await deleteUser(deleteId)
-      if (res.error) alert(`Error al eliminar: ${res.error}`)
-      else setDeleteId(null)
+      if (res.error) toast.error(`Error al eliminar: ${res.error}`)
+      else {
+        toast.success('Usuario eliminado correctamente')
+        setDeleteId(null)
+      }
     })
   }
 
@@ -77,8 +81,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     const formData = new FormData(e.currentTarget)
     startTransition(async () => {
       const res = await updateUserProfile(editUser.id, formData)
-      if (res.error) alert(res.error)
-      else setEditUser(null)
+      if (res.error) toast.error(res.error)
+      else {
+        toast.success('Perfil actualizado con éxito')
+        setEditUser(null)
+      }
     })
   }
 
@@ -89,8 +96,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     if (days < 1) return
     startTransition(async () => {
       const res = await addMembershipDays(daysUser.id, daysUser.latestMembership?.id || null, days)
-      if (res.error) alert(res.error)
-      else setDaysUser(null)
+      if (res.error) toast.error(res.error)
+      else {
+        toast.success(`Se han añadido ${days} días de gracia`)
+        setDaysUser(null)
+      }
     })
   }
 
@@ -101,8 +111,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     if (!planId) return
     startTransition(async () => {
       const res = await assignPlanToUser(planUser.id, planUser.latestMembership?.id || null, planId)
-      if (res.error) alert(res.error)
-      else setPlanUser(null)
+      if (res.error) toast.error(res.error)
+      else {
+        toast.success('Plan asignado correctamente')
+        setPlanUser(null)
+      }
     })
   }
 
@@ -113,8 +126,12 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     if (!planId) return
     startTransition(async () => {
       const res = await renewMembership(renewUser.id, planId)
-      if (res.error) alert(res.error)
+      if (res.error) toast.error(res.error)
       else {
+        toast.success('¡Suscripción renovada con éxito!', {
+          description: 'El nuevo ciclo se ha registrado correctamente.',
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        })
         setRenewUser(null)
         router.refresh()
       }
@@ -447,7 +464,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                 <DialogTitle className="text-2xl font-black tracking-tight">Vincular Nuevo Plan</DialogTitle>
               </DialogHeader>
               <form onSubmit={onSubmitPlan} className="space-y-6 mt-4">
-                 <div className="grid gap-4">
+                 <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
                     {plans.map(p => (
                        <label key={p.id} className="relative group cursor-pointer">
                           <input type="radio" name="planId" value={p.id} className="peer sr-only" required />
@@ -486,7 +503,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                 <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se iniciará un nuevo ciclo de facturación independiente</p>
               </DialogHeader>
               <form onSubmit={onSubmitRenew} className="space-y-6 mt-4">
-                 <div className="grid gap-4">
+                 <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
                     {plans.map(p => (
                        <label key={p.id} className="relative group cursor-pointer">
                           <input type="radio" name="planId" value={p.id} className="peer sr-only" required />

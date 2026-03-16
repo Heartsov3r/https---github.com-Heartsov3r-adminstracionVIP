@@ -37,7 +37,9 @@ export function CreateUserModal({ plans }: { plans: any[] }) {
   const [phone, setPhone] = useState('')
   
   // Por defecto intentamos preseleccionar el plan VIP si existe, si no "none"
-  const defaultPlanId = plans.find(p => p.name.toLowerCase().includes('vip'))?.id || 'none'
+  const defaultPlanId = Array.isArray(plans) 
+    ? (plans.find(p => p.name?.toLowerCase().includes('vip'))?.id || 'none')
+    : 'none'
   const [planId, setPlanId] = useState<string>(defaultPlanId)
 
   function handleNext() {

@@ -1,10 +1,23 @@
 import { fetchMembershipsForPayments } from './actions'
+import { fetchPaymentMethods } from '../payment-methods/actions'
+import { fetchPlans } from '../plans/actions'
+import { getCurrentAdmin } from '../actions'
 import PaymentsTable from './PaymentsTable'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CreditCard, DollarSign, Wallet, TrendingUp, TrendingDown, Activity } from 'lucide-react'
 
 export default async function PaymentsPage() {
-  const { data: memberships, error } = await fetchMembershipsForPayments()
+  const [
+    { data: memberships, error },
+    { data: admin },
+    { data: paymentMethods },
+    { data: plans }
+  ] = await Promise.all([
+    fetchMembershipsForPayments(),
+    getCurrentAdmin(),
+    fetchPaymentMethods(),
+    fetchPlans()
+  ])
 
   if (error || !memberships) {
     return (
@@ -25,7 +38,7 @@ export default async function PaymentsPage() {
   let totalCobrado = 0
   let planesActivos = 0
 
-  memberships.forEach(m => {
+  memberships.forEach((m: any) => {
       const precio = (m.plans as any)?.price || 0
       totalEsperado += precio
       const pagado = m.manual_payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0
@@ -110,7 +123,12 @@ export default async function PaymentsPage() {
       </div>
 
       <div className="pt-4">
-        <PaymentsTable memberships={memberships} />
+        <PaymentsTable 
+          memberships={memberships} 
+          currentAdmin={admin} 
+          paymentMethods={paymentMethods || []} 
+          plans={plans || []}
+        />
       </div>
     </div>
   )

@@ -39,6 +39,18 @@ export interface ManualPayment {
   payment_date: string
   notes: string | null
   registered_by: string | null
+  payment_method_id: string | null
+  created_at: string
+}
+
+export interface PaymentMethod {
+  id: string
+  name: string
+  type: 'bank_transfer' | 'digital_wallet' | 'crypto' | 'online_gateway' | 'other'
+  details: string
+  owner_name: string
+  country?: string | null
+  is_active: boolean
   created_at: string
 }
 

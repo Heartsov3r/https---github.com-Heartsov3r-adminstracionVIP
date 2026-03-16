@@ -13,12 +13,51 @@ import {
   History,
   User,
   Clock,
-  MessageCircle
+  MessageCircle,
+  TrendingDown,
+  ChevronRight,
+  CreditCard,
+  Target
 } from 'lucide-react'
 import { WhatsAppClientButton } from './components/WhatsAppClientButton'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { ClientDateTime } from '@/components/ui/client-datetime'
+import { cn } from '@/lib/utils'
+
+function RevenueChart({ data }: { data: { date: string, amount: number }[] }) {
+  const max = Math.max(...data.map(d => d.amount), 10)
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * 100
+    const y = 100 - (d.amount / max) * 100
+    return `${x},${y}`
+  }).join(' ')
+
+  return (
+    <div className="w-full h-24 relative overflow-hidden">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgb(16, 185, 129)" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="rgb(16, 185, 129)" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path
+          d={`M 0 100 L 0 ${100 - (data[0].amount / max) * 100} L ${points} L 100 100 Z`}
+          fill="url(#chartGradient)"
+        />
+        <polyline
+          fill="none"
+          stroke="rgb(16, 185, 129)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points}
+        />
+      </svg>
+    </div>
+  )
+}
 
 export default async function AdminDashboardPage() {
   const [{ data: stats, error }, { data: admin }] = await Promise.all([
@@ -42,293 +81,280 @@ export default async function AdminDashboardPage() {
   return (
     <div className="p-4 sm:p-8 space-y-8 sm:space-y-12 animate-in fade-in duration-700 max-w-7xl mx-auto pb-20">
       
-      {/* 🚀 EXECUTIVE HEADER & TOP METRICS */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8 pb-4 border-b border-white/5 relative">
-         <div className="space-y-2">
-            <div className="flex items-center gap-3 text-primary font-black uppercase text-[10px] tracking-[0.4em]">
-               <Activity className="w-4 h-4 animate-pulse" />
-               Estado del Sistema: Online
+      {/* 🚀 ESTRATEGIC HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8 border-b border-white/5 pb-10">
+         <div className="space-y-4">
+            <div className="flex items-center gap-3">
+               <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[9px] font-black uppercase tracking-widest flex items-center gap-2">
+                  <Activity className="w-3 h-3 animate-pulse" />
+                  Sistema Activo
+               </div>
+               <span className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest opacity-40">Dashboard 2.0</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-foreground tracking-tighter leading-[0.9]">
-               Hola, {adminName}
+            <h1 className="text-5xl sm:text-7xl font-black text-foreground tracking-tighter leading-[0.8] italic">
+               Panel de <span className="text-primary not-italic">Control</span>
             </h1>
             <p className="text-muted-foreground font-medium text-sm flex items-center gap-2 flex-wrap">
-               Resumen ejecutivo de <span className="text-foreground font-bold italic">Membresías VIP</span>
+               Bienvenido, <span className="text-foreground font-bold">{adminName}</span>
                {' · '}<ClientDateTime />
             </p>
          </div>
 
-         {(stats.soonToExpire > 0 || stats.expired > 0) && (
-            <div className="flex-1 max-w-xl animate-in fade-in slide-in-from-top-4 duration-1000">
-               <div className="bg-amber-500/10 border border-amber-500/20 backdrop-blur-md rounded-2xl p-4 flex items-center justify-between gap-4 group">
-                  <div className="flex items-center gap-3">
-                     <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
-                        <AlertTriangle className="w-5 h-5 animate-pulse" />
-                     </div>
-                     <div>
-                        <p className="text-sm font-black text-amber-500 tracking-tight">Atención Administrativa</p>
-                        <p className="text-xs text-amber-200/60 font-medium">
-                           {stats.expired > 0 && <span>{stats.expired} expiradas</span>}
-                           {stats.expired > 0 && stats.soonToExpire > 0 && <span> y </span>}
-                           {stats.soonToExpire > 0 && <span>{stats.soonToExpire} por vencer</span>}
-                        </p>
-                     </div>
-                  </div>
-                   <div className="flex items-center gap-2">
-                      <Link href="#admin-critical-alerts">
-                         <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-amber-500 hover:bg-amber-500/20 h-8 rounded-lg">
-                            Ver Detalles
-                         </Button>
-                      </Link>
-                   </div>
-               </div>
+         <div className="flex items-center gap-4 bg-white/[0.02] border border-white/5 p-4 rounded-[2rem] backdrop-blur-xl">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white ring-4 ring-primary/20">
+               <User className="w-7 h-7" />
             </div>
-         )}
-         
-         <div className="flex flex-wrap gap-3 sm:gap-4">
-            <div className="bg-white/[0.02] border border-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] flex flex-col flex-1 min-w-[120px] sm:min-w-[160px] shadow-2xl relative overflow-hidden group hover:bg-white/[0.04] transition-all">
-               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <DollarSign className="w-12 h-12" />
-               </div>
-               <span className="text-2xl sm:text-3xl font-black text-emerald-500 tracking-tighter leading-none">${stats.dailyRevenue.toLocaleString()}</span>
-               <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Caja Hoy</span>
-            </div>
-            <div className="bg-white/[0.02] border border-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] flex flex-col flex-1 min-w-[120px] sm:min-w-[160px] shadow-2xl relative overflow-hidden group hover:bg-white/[0.04] transition-all">
-               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <TrendingUp className="w-12 h-12" />
-               </div>
-               <span className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter leading-none">${stats.monthlyRevenue.toLocaleString()}</span>
-               <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Este Mes</span>
-            </div>
-            <div className="bg-white/[0.02] border border-white/5 backdrop-blur-xl p-4 sm:p-6 rounded-2xl sm:rounded-[2.5rem] flex flex-col flex-1 min-w-[120px] sm:min-w-[160px] shadow-2xl relative overflow-hidden group hover:bg-white/[0.04] transition-all">
-               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                  <Users className="w-12 h-12" />
-               </div>
-               <span className="text-2xl sm:text-3xl font-black text-primary tracking-tighter leading-none">{stats.totalClients}</span>
-               <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-2">Clientes Totales</span>
+            <div className="pr-4">
+               <p className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Admin VIP</p>
+               <p className="text-lg font-black tracking-tight text-foreground">{admin?.full_name}</p>
             </div>
          </div>
       </div>
 
-      {/* ⚡ ACCIONES RÁPIDAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-         <Link href="/admin/users" className="group">
-            <Button variant="outline" className="w-full h-14 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-white/[0.02] border-white/5 hover:bg-primary hover:text-white hover:border-primary transition-all flex items-center justify-between px-3 sm:px-6 font-black uppercase text-[9px] sm:text-xs tracking-widest">
-               <span>+ Nuevo Cliente</span>
-               <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </Button>
-         </Link>
-         <Link href="/admin/payments" className="group">
-            <Button variant="outline" className="w-full h-14 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-white/[0.02] border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all flex items-center justify-between px-3 sm:px-6 font-black uppercase text-[9px] sm:text-xs tracking-widest">
-               <span>Registrar Cobro</span>
-               <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-125 transition-transform" />
-            </Button>
-         </Link>
-         <Link href="/admin/plans" className="group">
-            <Button variant="outline" className="w-full h-14 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-white/[0.02] border-white/5 hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all flex items-center justify-between px-3 sm:px-6 font-black uppercase text-[9px] sm:text-xs tracking-widest">
-               <span>Configurar Planes</span>
-               <Zap className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-12 transition-transform" />
-            </Button>
-         </Link>
-         <Button variant="outline" className="w-full h-14 sm:h-20 rounded-xl sm:rounded-[1.5rem] bg-white/[0.02] border-white/5 hover:bg-white/10 transition-all flex items-center justify-between px-3 sm:px-6 font-black uppercase text-[9px] sm:text-xs tracking-widest opacity-50 cursor-not-allowed">
-            <span>Reportes PDF</span>
-            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-         </Button>
+      {/* 📊 KPI COMMAND CENTER */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+         {/* KPI: Recaudación Hoy */}
+         <div className="glass-card p-6 sm:p-8 rounded-[2.5rem] bg-emerald-500/5 border-emerald-500/20 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
+               <DollarSign className="w-16 h-16" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70 mb-2">Caja de Hoy</p>
+               <h3 className="text-4xl font-black text-emerald-500 tracking-tighter">${stats.dailyRevenue.toLocaleString()}</h3>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-emerald-500/60 uppercase tracking-widest">
+               <TrendingUp className="w-3 h-3" />
+               Ingresos del día
+            </div>
+         </div>
+
+         {/* KPI: Pendientes de Cobro (DEUDA) */}
+         <div className="glass-card p-6 sm:p-8 rounded-[2.5rem] bg-amber-500/5 border-amber-500/20 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
+               <Target className="w-16 h-16" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-amber-500/70 mb-2">Saldo Pendiente</p>
+               <h3 className="text-4xl font-black text-amber-500 tracking-tighter">${stats.totalPendingBalance.toLocaleString()}</h3>
+            </div>
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-black text-amber-500/60 uppercase tracking-widest">
+               <AlertTriangle className="w-3 h-3" />
+               Cuentas por cobrar
+            </div>
+         </div>
+
+         {/* KPI: Clientes Totales */}
+         <div className="glass-card p-6 sm:p-8 rounded-[2.5rem] bg-primary/5 border-primary/20 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
+               <Users className="w-16 h-16" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-primary/70 mb-2">Clientes Totales</p>
+               <h3 className="text-4xl font-black text-foreground tracking-tighter">{stats.totalClients}</h3>
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+               <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3" />
+                  {stats.newClientsWeekly} nuevos esta semana
+               </span>
+            </div>
+         </div>
+
+         {/* KPI: Recaudación Mes */}
+         <div className="glass-card p-6 sm:p-8 rounded-[2.5rem] bg-white/[0.02] border-white/5 flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-all">
+            <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform">
+               <TrendingUp className="w-16 h-16" />
+            </div>
+            <div>
+               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Total del Mes</p>
+               <h3 className="text-4xl font-black text-foreground tracking-tighter">${stats.monthlyRevenue.toLocaleString()}</h3>
+            </div>
+            <div className="mt-4">
+               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 w-2/3" />
+               </div>
+            </div>
+         </div>
       </div>
 
-      {/* 📊 MAIN OPERATIONAL GRID */}
-      <div className="grid gap-6 sm:gap-10 lg:grid-cols-12">
-        
-        {/* Left Column: Critical Status */}
-        <div className="lg:col-span-8 space-y-6 sm:space-y-10">
-           <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-              {/* Card: Por Vencer */}
-              <div id="admin-critical-alerts" className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-amber-500/10 flex flex-col group shadow-xl shadow-amber-500/5 relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl" />
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                   <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="p-3 sm:p-4 bg-amber-500/10 rounded-xl sm:rounded-2xl text-amber-500 animate-pulse">
-                          <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6" />
-                      </div>
-                      <div>
-                          <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">Alerta Prox.</h3>
-                          <div className="flex items-center gap-3">
-                             <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Vencen en 7 días o menos</p>
-                          </div>
-                      </div>
-                   </div>
-                   <span className="text-3xl sm:text-4xl font-black text-amber-500 tracking-tighter">{stats.soonToExpire}</span>
-                </div>
-                
-                <div className="space-y-2 sm:space-y-3 flex-1">
-                   {stats.details?.soonToExpireList?.length > 0 ? (
-                       stats.details.soonToExpireList.map((user: any) => (
-                          <div key={user.id} className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 transition-all cursor-pointer group/item">
-                              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-500/20 flex items-center justify-center text-xs font-black text-amber-500 border border-amber-500/20 shrink-0">{user.full_name?.charAt(0)}</div>
-                                  <div className="flex flex-col min-w-0">
-                                      <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight truncate">{user.full_name}</span>
-                                      <span className="text-[9px] sm:text-[10px] text-amber-500/80 font-black uppercase tracking-widest">{user.plan_name}</span>
-                                  </div>
-                              </div>
-                              <div className="flex flex-col items-end shrink-0 ml-2">
-                                 <span className="text-[9px] sm:text-[10px] font-black uppercase text-amber-500 tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-md mb-1">{user.daysLeft} días</span>
-                                 <WhatsAppClientButton 
-                                    phone={user.phone} 
-                                    fullName={user.full_name} 
-                                    planName={user.plan_name} 
-                                    daysLeft={user.daysLeft} 
-                                 />
-                              </div>
-                          </div>
-                       ))
-                   ) : (
-                       <div className="text-center py-8 sm:py-10 opacity-30 italic text-sm font-medium border-2 border-dashed border-white/5 rounded-2xl sm:rounded-3xl">Todo al día por aquí</div>
-                   )}
-                </div>
-              </div>
+      {/* 📈 ANALYTICS & TRENDS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+         {/* Left: Trend Chart */}
+         <div className="lg:col-span-8 space-y-8">
+            <div className="glass-card p-8 rounded-[3rem] bg-white/[0.01] border-white/5 shadow-2xl relative overflow-hidden">
+               <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                     <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500">
+                        <TrendingUp className="w-6 h-6" />
+                     </div>
+                     <div>
+                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">Rendimiento Semanal</h2>
+                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest opacity-50">Ingresos históricos (últimos 7 días)</p>
+                     </div>
+                  </div>
+                  <div className="text-right">
+                     <span className="text-xs font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full uppercase tracking-tighter">Tendencia Positiva</span>
+                  </div>
+               </div>
+               
+               <RevenueChart data={stats.weeklyRevenueData} />
 
-              {/* Card: Expiradas */}
-              <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-red-500/10 flex flex-col group shadow-xl shadow-red-500/5 relative overflow-hidden">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-red-500/5 rounded-full blur-3xl" />
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                   <div className="flex items-center gap-3 sm:gap-4">
-                      <div className="p-3 sm:p-4 bg-red-500/10 rounded-xl sm:rounded-2xl text-red-500">
-                          <XCircle className="h-5 w-5 sm:h-6 sm:w-6" />
-                      </div>
-                      <div>
-                          <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">Crítico</h3>
-                          <p className="text-xs sm:text-sm font-black text-foreground uppercase tracking-tight">Suscripciones Finalizadas</p>
-                      </div>
-                   </div>
-                   <span className="text-3xl sm:text-4xl font-black text-red-500 tracking-tighter">{stats.expired}</span>
-                </div>
-                
-                <div className="space-y-2 sm:space-y-3 flex-1">
-                   {stats.details?.expiredList?.length > 0 ? (
-                       stats.details.expiredList.map((user: any) => (
-                          <div key={user.id} className="flex items-center justify-between p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-red-500/5 hover:border-red-500/20 transition-all cursor-pointer opacity-80 hover:opacity-100">
-                              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-red-500/10 flex items-center justify-center text-xs font-black text-red-400 shrink-0">{user.full_name?.charAt(0)}</div>
-                                  <div className="flex flex-col min-w-0">
-                                      <span className="text-xs sm:text-sm font-bold text-foreground tracking-tight truncate">{user.full_name}</span>
-                                      <span className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest truncate">Finalizó {new Date(user.end_date).toLocaleDateString()}</span>
-                                  </div>
+               <div className="grid grid-cols-7 mt-6">
+                  {stats.weeklyRevenueData.map((d, i) => (
+                     <div key={i} className="text-center">
+                        <p className="text-[10px] font-black text-muted-foreground uppercase opacity-40">{new Date(d.date).toLocaleDateString('es-PE', { weekday: 'short' })}</p>
+                        <p className="text-[10px] font-bold text-foreground mt-1">${d.amount}</p>
+                     </div>
+                  ))}
+               </div>
+            </div>
+
+            {/* Critical Operations Grid (Alerts) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {/* Alerta: Cuentas por Vencer */}
+               <div className="glass-card p-8 rounded-[2.5rem] bg-amber-500/5 border-amber-500/10 shadow-xl shadow-amber-500/5 group">
+                  <div className="flex items-center justify-between mb-8">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-amber-500/20 rounded-2xl flex items-center justify-center text-amber-500 animate-pulse">
+                           <AlertTriangle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-black uppercase tracking-tighter italic">Por Vencer</h3>
+                     </div>
+                     <span className="text-3xl font-black text-amber-500">{stats.soonToExpire}</span>
+                  </div>
+                  <div className="space-y-3">
+                     {stats.details?.soonToExpireList?.length > 0 ? (
+                        stats.details.soonToExpireList.map((user: any) => (
+                           <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-amber-500/10 transition-all cursor-pointer">
+                              <div className="min-w-0">
+                                 <p className="text-sm font-black truncate leading-none mb-1">{user.full_name}</p>
+                                 <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">{user.plan_name}</p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                 <WhatsAppClientButton 
-                                    phone={user.phone} 
-                                    fullName={user.full_name} 
-                                    planName={user.plan_name} 
-                                    isExpired 
-                                 />
-                                 <ArrowUpRight className="w-4 h-4 text-red-500 opacity-20 shrink-0" />
+                              <WhatsAppClientButton 
+                                 phone={user.phone} 
+                                 fullName={user.full_name} 
+                                 planName={user.plan_name} 
+                                 daysLeft={user.daysLeft} 
+                              />
+                           </div>
+                        ))
+                     ) : (
+                        <div className="py-8 text-center text-xs text-muted-foreground italic opacity-50 border-2 border-dashed border-white/5 rounded-3xl">Todo al día</div>
+                     )}
+                  </div>
+               </div>
+
+               {/* Alerta: Cuentas Expiradas */}
+               <div className="glass-card p-8 rounded-[2.5rem] bg-red-500/5 border-red-500/10 shadow-xl shadow-red-500/5">
+                  <div className="flex items-center justify-between mb-8">
+                     <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-red-500/20 rounded-2xl flex items-center justify-center text-red-500">
+                           <XCircle className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-xl font-black uppercase tracking-tighter italic">Vencidas</h3>
+                     </div>
+                     <span className="text-3xl font-black text-red-500">{stats.expired}</span>
+                  </div>
+                  <div className="space-y-3">
+                     {stats.details?.expiredList?.length > 0 ? (
+                        stats.details.expiredList.map((user: any) => (
+                           <div key={user.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-red-500/10 opacity-80 hover:opacity-100 transition-all cursor-pointer">
+                              <div className="min-w-0">
+                                 <p className="text-sm font-black truncate leading-none mb-1 text-red-100">{user.full_name}</p>
+                                 <p className="text-[9px] font-black text-red-500/80 uppercase tracking-widest">Saldo: ${user.debt || 0}</p>
                               </div>
-                          </div>
-                       ))
-                   ) : (
-                       <div className="text-center py-8 sm:py-10 opacity-30 italic text-sm font-medium border-2 border-dashed border-white/5 rounded-2xl sm:rounded-3xl">No hay cuentas expiradas</div>
-                   )}
-                </div>
-              </div>
-           </div>
+                              <WhatsAppClientButton 
+                                 phone={user.phone} 
+                                 fullName={user.full_name} 
+                                 planName={user.plan_name} 
+                                 isExpired 
+                              />
+                           </div>
+                        ))
+                     ) : (
+                        <div className="py-8 text-center text-xs text-muted-foreground italic opacity-50 border-2 border-dashed border-white/5 rounded-3xl">Sin deudas vencidas</div>
+                     )}
+                  </div>
+               </div>
+            </div>
+         </div>
 
-           {/* FEED: ACTIVIDAD RECIENTE (ÚLTIMOS COBROS) */}
-           <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[3rem] bg-white/[0.01] border-white/5 shadow-2xl relative overflow-hidden">
-              <div className="flex items-center gap-3 mb-6 sm:mb-8">
-                 <History className="w-5 h-5 text-emerald-500 opacity-50" />
-                 <h2 className="text-lg sm:text-xl font-black italic tracking-tighter uppercase">Últimos Cobros Registrados</h2>
-              </div>
-              
-              <div className="grid gap-3 sm:gap-4">
-                 {stats.recentActivity?.length > 0 ? (
-                    stats.recentActivity.map((act: any, idx: number) => (
-                       <div key={idx} className="flex items-center justify-between p-3 sm:p-5 rounded-xl sm:rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all gap-3">
-                          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-                                <DollarSign className="w-5 h-5 sm:w-6 sm:h-6" />
-                             </div>
-                             <div className="flex flex-col min-w-0">
-                                <span className="font-black text-base sm:text-lg tracking-tighter text-foreground">${act.amount.toFixed(2)}</span>
-                                <span className="text-[9px] sm:text-[10px] text-muted-foreground font-medium flex items-center gap-1 truncate">
-                                   <User className="w-3 h-3 shrink-0" /> {act.customerName} · {act.planName}
-                                </span>
-                             </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                             <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-emerald-500/60 bg-emerald-500/5 px-2 sm:px-3 py-1 rounded-full mb-1">Completado</div>
-                             <div className="text-[9px] text-muted-foreground font-black opacity-40">
-                                <ClientDateTime 
-                                  date={act.date} 
-                                  options={{ hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short', hour12: false }} 
-                                />
-                             </div>
-                          </div>
-                       </div>
-                    ))
-                 ) : (
-                    <div className="text-center py-14 opacity-20 italic">No se registran actividades financieras hoy.</div>
-                 )}
-              </div>
-           </div>
-        </div>
+         {/* Right: Operational Feed & Shortcuts */}
+         <div className="lg:col-span-4 space-y-8">
+            {/* Quick Actions Panel */}
+            <div className="glass-card p-8 rounded-[2.5rem] bg-gradient-to-br from-primary/10 to-purple-600/10 border-white/10 relative overflow-hidden group">
+               <Target className="absolute -bottom-6 -right-6 w-32 h-32 opacity-5 scale-0 group-hover:scale-110 transition-transform" />
+               <h3 className="text-xl font-black uppercase tracking-tighter italic mb-6">Atajos Ráptidos</h3>
+               <div className="grid gap-3">
+                  <Link href="/admin/users">
+                     <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/80 text-[10px] font-black uppercase tracking-[0.2em] gap-3">
+                        <Users className="w-4 h-4" /> Nuevo Cliente
+                     </Button>
+                  </Link>
+                  <Link href="/admin/payments">
+                     <Button variant="outline" className="w-full h-14 rounded-2xl bg-white/5 border-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.2em] gap-3">
+                        <DollarSign className="w-4 h-4" /> Registrar Cobro
+                     </Button>
+                  </Link>
+                  <Link href="/admin/plans">
+                     <Button variant="outline" className="w-full h-14 rounded-2xl bg-white/5 border-white/5 hover:bg-white/10 text-[10px] font-black uppercase tracking-[0.2em] gap-3">
+                        <Zap className="w-4 h-4" /> Ajustar Planes
+                     </Button>
+                  </Link>
+               </div>
+            </div>
 
-        {/* Right Column: Analytics & Overview */}
-        <div className="lg:col-span-4 space-y-6 sm:space-y-10">
-           {/* Card: VIP Activos Summary */}
-           <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-emerald-500/5 border-emerald-500/20 shadow-xl shadow-emerald-500/5">
-              <div className="flex items-center justify-between mb-6 sm:mb-8">
-                 <div className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    <h3 className="font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] text-emerald-500/70 italic">Comunidad Activa</h3>
-                 </div>
-                 <span className="text-3xl font-black text-emerald-500 tracking-tighter">{stats.activeMemberships}</span>
-              </div>
-              <p className="text-xs sm:text-sm font-medium text-muted-foreground leading-relaxed mb-6">
-                 Tienes un total de <span className="text-foreground font-bold">{stats.activeMemberships} clientes con membresía vigente</span> en este momento.
-              </p>
-              <div className="space-y-4">
-                 {stats.details?.activeVIPs?.slice(0, 3).map((v: any) => (
-                    <div key={v.id} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 opacity-80 hover:opacity-100 transition-opacity">
-                       <div className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-[9px] font-black text-emerald-500 shrink-0">{v.full_name?.charAt(0)}</div>
-                       <span className="text-xs font-bold truncate flex-1">{v.full_name}</span>
-                       <span className="text-[10px] text-muted-foreground opacity-50">{v.plan_name}</span>
-                    </div>
-                 ))}
-                 <Link href="/admin/users" className="block text-center pt-4 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 hover:underline">Ver todos los activos</Link>
-              </div>
-           </div>
+            {/* Recaudación por Planes */}
+            <div className="glass-card p-8 rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-2xl">
+               <h3 className="text-xl font-black tracking-tighter uppercase italic mb-8">Popularidad de Planes</h3>
+               <div className="space-y-6">
+                  {stats.planDistribution?.map((plan: any, idx: number) => {
+                     const percentage = Math.round((plan.value / stats.activeMemberships) * 100) || 0;
+                     return (
+                        <div key={idx} className="space-y-3">
+                           <div className="flex justify-between items-end">
+                              <span className="text-xs font-black uppercase tracking-widest text-foreground/80">{plan.name}</span>
+                              <span className="text-xs font-black text-primary">{plan.value} usuarios</span>
+                           </div>
+                           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                              <div 
+                                 className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full transition-all duration-1000" 
+                                 style={{ width: `${percentage}%` }}
+                              />
+                           </div>
+                        </div>
+                     )
+                  })}
+               </div>
+            </div>
 
-           {/* Distribution Panel */}
-           <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
-                 <Zap className="w-20 h-20" />
-              </div>
-              <h3 className="text-base sm:text-lg font-black tracking-tighter uppercase italic mb-4 sm:mb-6">Planes Populares</h3>
-              <div className="space-y-4 sm:space-y-6">
-                 {stats.planDistribution?.map((plan: any, idx: number) => {
-                    const percentage = Math.round((plan.value / stats.activeMemberships) * 100) || 0;
-                    return (
-                       <div key={idx} className="space-y-2">
-                          <div className="flex justify-between items-end">
-                             <span className="text-xs font-black uppercase tracking-tight text-foreground">{plan.name}</span>
-                             <span className="text-[10px] font-black text-primary">{plan.value} usuarios</span>
-                          </div>
-                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                             <div 
-                                className="h-full bg-primary rounded-full transition-all duration-1000" 
-                                style={{ width: `${percentage}%` }}
-                             />
-                          </div>
-                       </div>
-                    )
-                 })}
-                 {stats.planDistribution?.length === 0 && (
-                    <p className="text-[10px] text-muted-foreground italic text-center py-4">Sin datos de planes asignados.</p>
-                 )}
-              </div>
-           </div>
-        </div>
+            {/* Feed: Actividad Reciente */}
+            <div className="glass-card p-8 rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-2xl">
+               <div className="flex items-center gap-3 mb-8">
+                  <History className="w-5 h-5 text-emerald-500 opacity-50" />
+                  <h2 className="text-lg font-black italic tracking-tighter uppercase">Últimos Flujos</h2>
+               </div>
+               <div className="space-y-4">
+                  {stats.recentActivity?.map((act: any, idx: number) => (
+                     <div key={idx} className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all">
+                        <div className="flex items-center gap-4">
+                           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                              <ArrowUpRight className="w-5 h-5" />
+                           </div>
+                           <div className="min-w-0">
+                              <p className="text-sm font-black text-foreground">${act.amount}</p>
+                              <p className="text-[10px] text-muted-foreground font-bold truncate opacity-50">{act.customerName}</p>
+                           </div>
+                        </div>
+                        <div className="text-right">
+                           <p className="text-[9px] font-black text-emerald-500/60 uppercase">Completado</p>
+                           <p className="text-[9px] text-muted-foreground font-bold opacity-30 mt-1">{new Date(act.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}</p>
+                        </div>
+                     </div>
+                  ))}
+               </div>
+            </div>
+         </div>
       </div>
     </div>
   )

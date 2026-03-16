@@ -20,7 +20,9 @@ import {
   ChevronDown,
   UserPlus,
   User,
-  BarChart3
+  BarChart3,
+  FileText,
+  Wallet
 } from 'lucide-react'
 
 import {
@@ -52,6 +54,8 @@ export default function AdminLayout({
     { name: 'Usuarios', href: '/admin/users', icon: Users },
     { name: 'Planes', href: '/admin/plans', icon: CalendarDays },
     { name: 'Pagos', href: '/admin/payments', icon: CreditCard },
+    { name: 'Métodos de Pago', href: '/admin/payment-methods', icon: Wallet },
+    { name: 'Recibos', href: '/admin/receipts', icon: FileText },
     { name: 'Reportes', href: '/admin/reports', icon: BarChart3 },
     { name: 'Logs', href: '/admin/logs', icon: Activity },
   ]

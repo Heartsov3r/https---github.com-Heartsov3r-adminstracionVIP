@@ -13,7 +13,7 @@ export async function fetchPlans() {
     .order('created_at', { ascending: true })
 
   if (error) {
-    console.error('Error fetching plans:', error)
+    console.error('Error fetching plans:', JSON.stringify(error, null, 2))
     return { data: null, error: error.message }
   }
 

@@ -8,7 +8,6 @@ import { logAdminAction } from '@/app/admin/logs/actions'
 export async function fetchMembershipsForPayments() {
   const supabase = await createClient()
 
-  // Traeremos todas las membresías con la info del usuario, el plan, y los pagos realizados
   const { data, error } = await supabase
     .from('memberships')
     .select(`
@@ -33,17 +32,20 @@ export async function fetchMembershipsForPayments() {
         amount,
         payment_date,
         notes,
-        payment_receipts (
+        payment_methods (
           id,
-          file_url
+          name,
+          details,
+          owner_name,
+          type
         )
       )
     `)
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching memberships for payments:', error)
-    return { data: null, error: error.message }
+    console.error('Error fetching memberships:', JSON.stringify(error, null, 2))
+    return { data: null, error: error.message || 'Error desconocido en la consulta' }
   }
 
   return { data, error: null }
@@ -54,7 +56,7 @@ export async function registerPayment(formData: FormData) {
   
   const membershipId = formData.get('membershipId') as string
   const amountStr = formData.get('amount') as string
-  const notes = formData.get('notes') as string
+  const paymentMethodId = formData.get('paymentMethodId') as string
   const file = formData.get('file') as File | null
   
   if (!membershipId || !amountStr) {
@@ -78,8 +80,8 @@ export async function registerPayment(formData: FormData) {
     .insert({
       membership_id: membershipId,
       amount: amount,
-      notes: notes,
-      registered_by: user.id
+      registered_by: user.id,
+      payment_method_id: paymentMethodId || null
     })
     .select('id')
     .single()
