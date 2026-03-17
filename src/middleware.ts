@@ -46,8 +46,8 @@ export async function middleware(request: NextRequest) {
     const isClientPage = url.pathname.startsWith('/client')
     const isRootPage = url.pathname === '/'
 
-    // No autenticado: redirigir a login
-    if (!user && (isAdminPage || isClientPage || isRootPage)) {
+    // No autenticado: redirigir áreas protegidas a /login
+    if (!user && (isAdminPage || isClientPage)) {
       url.pathname = '/login'
       return NextResponse.redirect(url)
     }

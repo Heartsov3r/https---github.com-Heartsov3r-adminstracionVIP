@@ -1,16 +1,20 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import LandingContent from './LandingContent'
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login')
+    return <LandingContent searchParams={searchParams} />
   }
 
-  // Si está autenticado, el middleware se encargará de llevarlo a /admin o /client
-  // pero por si acaso, traemos el perfil aquí también
+  // Si está autenticado, buscamos el perfil para redirigir correctamente
   const { data: profile } = await supabase
     .from('profiles')
     .select('role')

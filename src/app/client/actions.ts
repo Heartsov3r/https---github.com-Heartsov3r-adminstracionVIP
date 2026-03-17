@@ -32,7 +32,18 @@ export async function fetchMyStatus() {
   if (allUserMemberships && allUserMemberships.length > 0) {
       const { data: fetchedPayments } = await supabase
         .from('manual_payments')
-        .select('*, payment_receipts(*), memberships(plans(name))')
+        .select(`
+          *, 
+          payment_receipts(*), 
+          memberships(
+            id,
+            start_date,
+            end_date,
+            plans(id, name, price, duration_days)
+          ),
+          payment_methods(*),
+          profiles!recording_admin_id(full_name)
+        `)
         .in('membership_id', allUserMemberships.map(m => m.id))
         .order('payment_date', { ascending: false })
       

@@ -13,11 +13,24 @@ import {
   MessageCircle,
   HeadphonesIcon,
   ExternalLink,
-  Zap
+  Zap,
+  Eye
 } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { getBusinessDate } from '@/lib/utils'
 import { ClientDateTime } from '@/components/ui/client-datetime'
+import ClientPaymentsClient from './ClientPaymentsClient'
+
+const WhatsAppIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    fill="currentColor"
+  >
+    <path d="M12.041 2C6.505 2 2 6.502 2 12.037c0 1.769.457 3.491 1.33 5.013L2.053 22l5.133-1.348c1.491.815 3.166 1.242 4.855 1.242 5.536 0 10.041-4.503 10.041-10.039 0-2.682-1.044-5.203-2.94-7.098A9.972 9.972 0 0 0 12.041 2zM17.43 16.32c-.248.694-1.232 1.272-1.742 1.352-.511.08-1.026.136-2.316-.362-1.636-.632-2.698-2.333-2.779-2.441-.081-.109-1.323-1.76-1.323-3.376 0-1.616.844-2.41 1.144-2.738.3-.328.66-.411.87-.411h.461c.15 0 .341-.013.483.337.143.35.592 1.455.644 1.56.052.105.086.227.016.368-.07.14-.15.228-.24.32-.09.092-.191.206-.271.294-.092.102-.182.204-.079.382.103.178.452.746 1.021 1.255.733.655 1.353.859 1.543.954.19.095.303.079.417-.052.114-.131.488-.57.632-.76.145-.19.29-.158.484-.087.194.072 1.229.58 1.442.692.213.112.355.168.406.258s.051.61-.197 1.304z" />
+  </svg>
+)
 
 export default async function ClientPage() {
   const { data, error } = await fetchMyStatus()
@@ -104,15 +117,12 @@ export default async function ClientPage() {
                   <p className="text-white/60 text-[10px] sm:text-xs font-black uppercase tracking-widest mb-1">Plan Contratado</p>
                   <h2 className="text-2xl sm:text-4xl font-black tracking-tighter">{latestMembership.plans?.name}</h2>
                 </div>
-                <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                  <div>
-                    <p className="text-white/50 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1">Inicio</p>
-                    <p className="text-sm sm:text-base font-bold"><ClientDateTime date={latestMembership.start_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} /></p>
-                  </div>
-                  <div>
-                    <p className="text-white/50 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1">Vencimiento</p>
-                    <p className="text-sm sm:text-base font-bold"><ClientDateTime date={latestMembership.end_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} /></p>
-                  </div>
+                <div className="pt-2">
+                  <p className="text-white/50 text-[10px] sm:text-xs font-black uppercase tracking-widest mb-1">Tu acceso VIP finaliza el:</p>
+                  <p className="text-lg sm:text-xl font-black flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-white/70" />
+                    <ClientDateTime date={latestMembership.end_date} options={{ day: '2-digit', month: 'long', year: 'numeric' }} />
+                  </p>
                 </div>
               </>
             ) : (
@@ -153,51 +163,39 @@ export default async function ClientPage() {
         <div className="lg:col-span-2 space-y-6 sm:space-y-8">
           
           {/* Historial de Pagos */}
-          <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-xl">
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
-              <div className="p-2.5 sm:p-3 bg-emerald-500/10 rounded-lg sm:rounded-xl text-emerald-500">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">Historial de Pagos</h3>
+          <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-xl relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700">
+               <DollarSign className="w-32 h-32" />
             </div>
 
-            {payments.length > 0 ? (
-              <div className="space-y-3 sm:space-y-4">
-                {payments.map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 sm:p-5 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all gap-3">
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-black text-base sm:text-lg tracking-tighter">${Number(p.amount).toFixed(2)}</p>
-                        <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">
-                          {p.memberships?.plans?.name || 'Pago manual'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-1 sm:gap-2 shrink-0">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground font-bold">
-                        <ClientDateTime date={p.payment_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
-                      </p>
-                      {p.payment_receipts?.length > 0 && (
-                        <a href={p.payment_receipts[0].file_url} target="_blank" rel="noreferrer"
-                          className="flex items-center gap-1 text-[9px] sm:text-[10px] font-black text-blue-400 hover:text-blue-300 transition-colors bg-blue-500/10 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                          <Paperclip className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          Recibo
-                          <ExternalLink className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                        </a>
-                      )}
-                    </div>
+            <div className="flex items-center justify-between mb-8 relative z-10">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-500 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/5">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black tracking-tighter uppercase italic text-foreground">Mis Pagos</h3>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Historial de abonos realizados</p>
+                </div>
+              </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                {payments.length} Registros
+              </div>
+            </div>
+
+            <div className="relative z-10">
+              {payments.length > 0 ? (
+                <ClientPaymentsClient payments={payments} profile={profile} />
+              ) : (
+                <div className="text-center py-16 border-2 border-dashed border-white/5 rounded-[2rem] bg-white/[0.01]">
+                  <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4 opacity-50">
+                    <DollarSign className="w-8 h-8 text-muted-foreground" />
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-10 sm:py-12 border-2 border-dashed border-white/5 rounded-xl sm:rounded-2xl">
-                <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground opacity-20 mx-auto mb-3" />
-                <p className="text-xs sm:text-sm text-muted-foreground font-medium italic">No tienes pagos registrados todavía.</p>
-              </div>
-            )}
+                  <p className="text-sm font-black uppercase tracking-widest text-muted-foreground italic">No hay pagos registrados</p>
+                  <p className="text-xs text-muted-foreground/50 mt-1 max-w-[200px] mx-auto">Tus transacciones aparecerán aquí una vez que sean procesadas.</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Perfil del Cliente */}
@@ -285,13 +283,13 @@ export default async function ClientPage() {
             <div className="space-y-2 sm:space-y-3">
               {/* WhatsApp */}
               <a
-                href="https://wa.me/1234567890?text=Hola,%20necesito%20ayuda%20con%20mi%20membresía%20VIP"
+                href="https://wa.me/593990434546?text=Hola,%20necesito%20ayuda%20con%20mis%20Membresías%20VIP"
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-all group"
               >
                 <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#25D366]/20 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" />
+                  <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-xs sm:text-sm text-[#25D366]">WhatsApp</p>
@@ -301,8 +299,8 @@ export default async function ClientPage() {
               </a>
 
               {/* Email */}
-              <a
-                href="mailto:soporte@membresiasvip.com?subject=Soporte%20-%20Mi%20Membresía%20VIP"
+                <a
+                href="mailto:andyobregon152@gmail.com?subject=Soporte%20-%20Mi%20Membresía%20VIP"
                 className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group"
               >
                 <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
@@ -310,7 +308,7 @@ export default async function ClientPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-black text-xs sm:text-sm text-foreground">Correo Electrónico</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">soporte@membresiasvip.com</p>
+                  <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">andyobregon152@gmail.com</p>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
               </a>

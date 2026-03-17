@@ -38,6 +38,10 @@ export async function fetchMembershipsForPayments() {
           details,
           owner_name,
           type
+        ),
+        payment_receipts (
+          id,
+          file_url
         )
       )
     `)
@@ -134,5 +138,83 @@ export async function registerPayment(formData: FormData) {
 
   revalidatePath('/admin/payments')
   revalidatePath(`/admin/users`) 
+  return { success: true }
+}
+
+export async function updatePayment(formData: FormData) {
+  const supabase = await createClient()
+  const paymentId = formData.get('paymentId') as string
+  const amountStr = formData.get('amount') as string
+  const paymentMethodId = formData.get('paymentMethodId') as string
+  const reason = formData.get('reason') as string
+
+  if (!paymentId || !amountStr) return { error: 'Datos incompletos.' }
+
+  const amount = parseFloat(amountStr)
+  if (isNaN(amount) || amount <= 0) return { error: 'Monto inválido.' }
+
+  // Obtener info previa para el log
+  const { data: oldPayment } = await supabase
+    .from('manual_payments')
+    .select('amount, membership_id, profiles!registered_by(full_name)')
+    .eq('id', paymentId)
+    .single()
+
+  const { error } = await supabase
+    .from('manual_payments')
+    .update({
+      amount: amount,
+      payment_method_id: paymentMethodId || null
+    })
+    .eq('id', paymentId)
+
+  if (error) return { error: error.message }
+
+  await logAdminAction(
+    'UPDATE_PAYMENT',
+    `EDITÓ pago ID ${paymentId.slice(0,8)}: De $${oldPayment?.amount} a $${amount}. Motivo: ${reason || 'No especificado'}`,
+    oldPayment?.membership_id
+  )
+
+  revalidatePath('/admin/payments')
+  return { success: true }
+}
+
+export async function deletePayment(paymentId: string, reason: string) {
+  const supabase = await createClient()
+
+  // 1. Obtener info del pago y recibos antes de borrar
+  const { data: payment } = await supabase
+    .from('manual_payments')
+    .select('id, amount, membership_id, payment_receipts(storage_path)')
+    .eq('id', paymentId)
+    .single()
+
+  if (!payment) return { error: 'Pago no encontrado.' }
+
+  // 2. Borrar archivos del storage si existen
+  if (payment.payment_receipts && payment.payment_receipts.length > 0) {
+    for (const receipt of payment.payment_receipts) {
+      if (receipt.storage_path) {
+        await supabase.storage.from('receipts').remove([receipt.storage_path])
+      }
+    }
+  }
+
+  // 3. Borrar registro de la DB (RLS y cascade se encargan del resto)
+  const { error: deleteError } = await supabase
+    .from('manual_payments')
+    .delete()
+    .eq('id', paymentId)
+
+  if (deleteError) return { error: deleteError.message }
+
+  await logAdminAction(
+    'DELETE_PAYMENT',
+    `ELIMINÓ pago de $${payment.amount}. Motivo: ${reason || 'Error de registro'}`,
+    payment.membership_id
+  )
+
+  revalidatePath('/admin/payments')
   return { success: true }
 }

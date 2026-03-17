@@ -37,7 +37,7 @@ src/
 │   └── login/          # Autenticación
 ├── components/ui/      # Componentes UI reutilizables
 ├── lib/supabase/       # Clientes Supabase (server + client)
-└── proxy.ts            # Middleware de autenticación y roles
+└── middleware.ts      # Middleware de autenticación y roles
 ```
 
 ## ⚙️ Variables de Entorno
