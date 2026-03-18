@@ -144,3 +144,43 @@ export async function addMembershipDays(userId: string, currentMembershipId: str
   revalidatePath('/admin/users')
   return { success: true }
 }
+
+export async function addReferralBonus(userId: string, currentMembershipId: string | null, daysToAdd: number) {
+  const supabase = await createClient()
+
+  if (!currentMembershipId) {
+    // Si no tiene membresía activa, creamos una desde hoy
+    const startDate = new Date()
+    const endDate = new Date()
+    endDate.setDate(endDate.getDate() + daysToAdd)
+
+    const { error } = await supabase.from('memberships').insert({
+      user_id: userId,
+      plan_id: null,
+      start_date: startDate.toISOString(),
+      end_date: endDate.toISOString()
+    })
+
+    if (error) return { error: error.message }
+
+  } else {
+    // Si ya existe, le sumamos los días a su fecha de expedición
+    const { data: memData } = await supabase.from('memberships').select('end_date').eq('id', currentMembershipId).single()
+    if (!memData) return { error: 'Membresía no encontrada' }
+
+    const newEndDate = new Date(memData.end_date)
+    newEndDate.setDate(newEndDate.getDate() + daysToAdd)
+
+    const { error } = await supabase.from('memberships')
+      .update({ end_date: newEndDate.toISOString() })
+      .eq('id', currentMembershipId)
+
+    if (error) return { error: error.message }
+  }
+
+  await logAdminAction('REFERRAL_BONUS', `Bonificación manual: Añadió ${daysToAdd} días por referido`, userId)
+
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  return { success: true }
+}

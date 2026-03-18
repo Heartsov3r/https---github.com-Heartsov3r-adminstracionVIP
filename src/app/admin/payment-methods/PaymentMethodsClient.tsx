@@ -198,22 +198,22 @@ export default function PaymentMethodsClient({ initialMethods }: { initialMethod
 
       {/* CREATE/EDIT MODAL */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="glass-card border-none max-w-xl rounded-[2.5rem] p-0 overflow-hidden shadow-2xl ring-1 ring-white/10">
-          <div className="premium-gradient p-8 text-white relative">
-             <div className="relative z-10 flex items-center gap-5">
-                <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
-                   <Wallet className="w-8 h-8 text-white" />
+        <DialogContent className="glass-card border-none w-[95vw] max-w-xl rounded-[1.5rem] sm:rounded-[2.5rem] p-0 overflow-y-auto max-h-[90vh] shadow-2xl ring-1 ring-white/10">
+          <div className="premium-gradient p-5 sm:p-8 text-white relative overflow-hidden">
+             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-5">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                   <Wallet className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
                 <div>
-                   <DialogTitle className="text-2xl font-black">{editingMethod ? 'Editar Método' : 'Nuevo Método'}</DialogTitle>
-                   <p className="text-white/70 text-sm font-medium">Configura tus datos financieros para cobros globales.</p>
+                   <DialogTitle className="text-xl sm:text-2xl font-black">{editingMethod ? 'Editar Método' : 'Nuevo Método'}</DialogTitle>
+                   <p className="text-white/70 text-xs sm:text-sm font-medium mt-1">Configura tus datos financieros para cobros globales.</p>
                 </div>
              </div>
-             <CreditCard className="absolute top-0 right-0 w-32 h-32 opacity-10 rotate-12 scale-150 translate-x-10 -translate-y-10" />
+             <CreditCard className="absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 opacity-10 rotate-12 scale-150 translate-x-5 sm:translate-x-10 -translate-y-5 sm:-translate-y-10" />
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-8 bg-zinc-950/20">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-6 sm:space-y-8 bg-zinc-950/20">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
               <div className="space-y-3">
                 <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/80 ml-1">Plataforma / Banco</Label>
                 <Input 
@@ -272,7 +272,7 @@ export default function PaymentMethodsClient({ initialMethods }: { initialMethod
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
               <div className="space-y-3">
                 <Label className="text-[11px] font-black uppercase tracking-[0.2em] text-primary/80 ml-1">Categoría de Cobro</Label>
                 <Select name="type" defaultValue={editingMethod?.type || 'bank_transfer'}>
@@ -338,23 +338,24 @@ export default function PaymentMethodsClient({ initialMethods }: { initialMethod
               </div>
             </div>
 
-            <div className="flex gap-4 pt-6">
+            <div className="flex flex-col sm:flex-row-reverse gap-3 sm:gap-4 pt-4 sm:pt-6 w-full">
+              <Button 
+                type="submit" 
+                disabled={isPending} 
+                className="w-full sm:flex-[2] premium-gradient h-14 rounded-2xl font-black text-white shadow-xl shadow-primary/20 uppercase text-[11px] sm:text-xs tracking-[0.2em]"
+              >
+                {isPending ? 'Guardando...' : editingMethod ? 'Confirmar Edición' : 'Registrar Método'}
+              </Button>
               <Button 
                 type="button" 
                 variant="ghost" 
-                className="flex-1 font-bold h-14 rounded-2xl hover:bg-white/5" 
+                className="w-full sm:flex-1 font-bold h-14 rounded-2xl hover:bg-white/5" 
                 onClick={() => setIsModalOpen(false)}
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isPending} 
-                className="flex-[1.5] premium-gradient h-14 rounded-2xl font-black text-white shadow-xl shadow-primary/20 uppercase text-xs tracking-[0.2em]"
-              >
-                {isPending ? 'Guardando...' : editingMethod ? 'Confirmar Edición' : 'Registrar Método'}
-              </Button>
             </div>
+
           </form>
         </DialogContent>
       </Dialog>

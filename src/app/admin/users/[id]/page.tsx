@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, CalendarDays, Clock, CreditCard, Mail, Phone, Shie
 import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { ReferralBonusButtons } from './ReferralBonusButtons'
 
 export default async function UserProfileDashboard({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -184,10 +185,15 @@ export default async function UserProfileDashboard({ params }: { params: Promise
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50 mb-1">Transacciones</p>
               <h3 className="text-3xl font-black tracking-tighter text-foreground">{totalPayments}</h3>
            </div>
-           <div className="mt-4 pt-4 border-t border-white/5">
-              <p className="text-[10px] font-bold text-muted-foreground italic">Registros procesados</p>
-           </div>
-        </div>
+            <div className="mt-4 pt-4 border-t border-white/5">
+               <p className="text-[10px] font-bold text-muted-foreground italic">Registros procesados</p>
+            </div>
+         </div>
+      </div>
+
+      {/* ACCIONES EXTRAS */}
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+         <ReferralBonusButtons userId={id} currentMembershipId={latestMembership?.id || null} />
       </div>
 
       {/* HISTORIAL DETALLADO */}

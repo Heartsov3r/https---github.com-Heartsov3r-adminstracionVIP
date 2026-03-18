@@ -20,6 +20,8 @@ import { differenceInDays } from 'date-fns'
 import { getBusinessDate } from '@/lib/utils'
 import { ClientDateTime } from '@/components/ui/client-datetime'
 import ClientPaymentsClient from './ClientPaymentsClient'
+import ServiceGridVIP from './ServiceGridVIP'
+import VipCredentialCard from './VipCredentialCard'
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg 
@@ -133,27 +135,46 @@ export default async function ClientPage() {
             )}
           </div>
 
-          {/* Días Counter */}
+          {/* Días Counter Premium */}
           {latestMembership && (
-            <div className="flex flex-col items-center gap-3 shrink-0 self-center">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white/10 border-4 border-white/20 flex flex-col items-center justify-center shadow-2xl backdrop-blur-sm">
-                <span className="text-3xl sm:text-4xl font-black leading-none">{Math.max(0, daysDiff)}</span>
-                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/70">días</span>
-              </div>
-              {mStatus !== 'Vencida' && (
-                <div className="w-24 sm:w-32 space-y-1">
-                  <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-white rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
-                  </div>
-                  <p className="text-[9px] sm:text-[10px] text-white/50 text-center font-bold">{progressPercent}% restante</p>
+            <div className="flex flex-col items-center gap-4 shrink-0 self-center">
+              <div className="relative w-32 h-32 sm:w-40 sm:h-40 flex items-center justify-center">
+                {/* Glow de fondo */}
+                <div className={`absolute inset-0 rounded-full blur-xl opacity-50 ${mStatus === 'Activa' ? 'bg-emerald-500' : mStatus === 'Por Vencer' ? 'bg-amber-500' : 'bg-red-500'}`} />
+                
+                {/* Anillo exterior */}
+                <svg className="absolute inset-0 w-full h-full -rotate-90">
+                  <circle cx="50%" cy="50%" r="48%" className="fill-none stroke-white/10 stroke-[4]" />
+                  <circle cx="50%" cy="50%" r="48%" 
+                    className={`fill-none stroke-[8] stroke-linecap-round transition-all duration-1000 ${mStatus === 'Vencida' ? 'stroke-red-500' : mStatus === 'Por Vencer' ? 'stroke-amber-400' : 'stroke-emerald-400'}`}
+                    strokeDasharray="300" 
+                    strokeDashoffset={300 - (300 * progressPercent) / 100}
+                  />
+                </svg>
+
+                {/* Contenido central */}
+                <div className="absolute inset-2 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex flex-col items-center justify-center shadow-inner">
+                  <span className="text-4xl sm:text-5xl font-black leading-none text-white tracking-tighter">
+                    {Math.max(0, daysDiff)}
+                  </span>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/50 mt-1">días</span>
                 </div>
-              )}
-              {mStatus === 'Vencida' && (
-                <p className="text-[9px] sm:text-[10px] text-red-300 text-center font-bold max-w-[120px]">Venció hace {Math.abs(daysDiff)} días</p>
+              </div>
+
+              {mStatus !== 'Vencida' ? (
+                <div className="flex py-1 px-3 rounded-full bg-black/40 border border-white/10 backdrop-blur-md">
+                   <p className="text-[9px] sm:text-[10px] text-white/70 font-bold uppercase tracking-widest">{progressPercent}% Consumido</p>
+                </div>
+              ) : (
+                <p className="text-[10px] text-red-300 font-bold uppercase tracking-widest">Venció hace {Math.abs(daysDiff)} días</p>
               )}
             </div>
           )}
         </div>
+      </div>
+      {/* ===== CATALOGO DE BENEFICIOS ===== */}
+      <div className="py-6 sm:py-8">
+        <ServiceGridVIP />
       </div>
 
       {/* ===== MAIN GRID ===== */}
@@ -198,48 +219,8 @@ export default async function ClientPage() {
             </div>
           </div>
 
-          {/* Perfil del Cliente */}
-          <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-xl">
-            <div className="flex items-center gap-3 mb-6 sm:mb-8">
-              <div className="p-2.5 sm:p-3 bg-primary/10 rounded-lg sm:rounded-xl text-primary">
-                <User className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-black tracking-tighter uppercase italic">Mi Perfil</h3>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-1.5 sm:space-y-2">
-                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                  <User className="w-3 h-3" /> Nombre Completo
-                </p>
-                <p className="text-sm sm:text-base font-bold text-foreground">{profile?.full_name || 'No registrado'}</p>
-              </div>
-              <div className="space-y-1.5 sm:space-y-2">
-                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                  <Mail className="w-3 h-3" /> Correo Electrónico
-                </p>
-                <p className="text-sm sm:text-base font-bold text-foreground truncate">{profile?.email || 'No registrado'}</p>
-              </div>
-              {(profile as any)?.phone && (
-                <div className="space-y-1.5 sm:space-y-2">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                    <Phone className="w-3 h-3" /> Teléfono
-                  </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground">{(profile as any).phone}</p>
-                </div>
-              )}
-              {(profile as any)?.created_at && (
-                <div className="space-y-1.5 sm:space-y-2">
-                  <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                    <Calendar className="w-3 h-3" /> Miembro desde
-                  </p>
-                  <p className="text-sm sm:text-base font-bold text-foreground">
-                    <ClientDateTime date={(profile as any).created_at} options={{ month: 'long', year: 'numeric' }} />
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* ID Card VIP: Perfil del Cliente */}
+          <VipCredentialCard profile={profile} latestMembership={latestMembership} mStatus={mStatus} />
         </div>
 
         {/* RIGHT: Contacto y Soporte */}
@@ -267,60 +248,78 @@ export default async function ClientPage() {
             </p>
           </div>
 
-          {/* Card: Contacto y Soporte */}
-          <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-xl space-y-4 sm:space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 sm:p-3 bg-blue-500/10 rounded-lg sm:rounded-xl text-blue-500">
-                <HeadphonesIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+          {/* Card: Contacto y Soporte (Asesor VIP) */}
+          <div className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-[2.5rem] bg-white/[0.01] border-white/5 shadow-xl space-y-5 sm:space-y-6 relative overflow-hidden">
+            {/* Background Accent */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-2 border-primary/20 p-1 flex items-center justify-center shrink-0">
+                   <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=AndySoporte&backgroundColor=b6e3f4" alt="Asesor" className="w-full h-full rounded-full object-cover" />
+                </div>
+                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#16131c] shadow-lg shadow-emerald-500/20" />
               </div>
-              <h3 className="text-base sm:text-lg font-black tracking-tighter uppercase italic">Soporte</h3>
+              <div>
+                <h3 className="text-xl font-black tracking-tighter uppercase italic text-foreground">Tu Asesor VIP</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" /> En Línea ahora
+                </p>
+              </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
-              ¿Tienes alguna duda sobre tu membresía, pagos o renovaciones? Estamos para ayudarte.
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed relative z-10">
+              Estoy aquí para ayudarte con tus renovaciones, dudas técnicas o cualquier necesidad con tu membresía.
             </p>
 
-            <div className="space-y-2 sm:space-y-3">
-              {/* WhatsApp */}
+            <div className="space-y-3 relative z-10">
+              {/* WhatsApp VIP */}
               <a
-                href="https://wa.me/593990434546?text=Hola,%20necesito%20ayuda%20con%20mis%20Membresías%20VIP"
+                href="https://wa.me/593990434546?text=Hola,%20necesito%20asistencia%20con%20mi%20Membresía%20VIP"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-all group"
+                className="flex items-center justify-between p-4 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/20 hover:bg-[#25D366]/20 transition-all group overflow-hidden relative"
               >
-                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#25D366]/20 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
-                  <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#25D366]/0 via-[#25D366]/5 to-[#25D366]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-10 h-10 bg-[#25D366]/20 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-[#25D366]/10 group-hover:scale-110 transition-transform">
+                    <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-[#25D366]">Chat Directo</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Respuesta en minutos</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-xs sm:text-sm text-[#25D366]">WhatsApp</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Respuesta rápida</p>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#25D366] opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
+                <ExternalLink className="w-4 h-4 text-[#25D366] opacity-50 relative z-10" />
               </a>
 
-              {/* Email */}
-                <a
-                href="mailto:andyobregon152@gmail.com?subject=Soporte%20-%20Mi%20Membresía%20VIP"
-                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] transition-all group"
+              {/* Email VIP */}
+              <a
+                href="mailto:andyobregon152@gmail.com?subject=Soporte%20VIP%20-%20Mi%20Cuenta"
+                className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-white/10 transition-all group relative overflow-hidden"
               >
-                <div className="w-9 h-9 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0">
-                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                <div className="flex items-center gap-4 relative z-10">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/5 group-hover:scale-110 transition-transform">
+                    <Mail className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-sm text-foreground">Soporte por Correo</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">andyobregon152@gmail.com</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-xs sm:text-sm text-foreground">Correo Electrónico</p>
-                  <p className="text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-widest truncate">andyobregon152@gmail.com</p>
-                </div>
-                <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
+                <ExternalLink className="w-4 h-4 text-primary opacity-50 relative z-10" />
               </a>
             </div>
 
-            {/* Horario */}
-            <div className="pt-3 sm:pt-4 border-t border-white/5">
-              <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5 sm:mb-2">
-                Horario de Atención
-              </p>
-              <p className="text-[11px] sm:text-xs font-bold text-foreground">Lunes – Viernes: 9:00 AM – 6:00 PM</p>
-              <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5 sm:mt-1">Sábados: 10:00 AM – 2:00 PM</p>
+            {/* Horario VIP */}
+            <div className="pt-4 border-t border-white/5 flex items-center gap-3 relative z-10">
+              <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
+                <Clock className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Disponibilidad</p>
+                <p className="text-[11px] font-bold text-emerald-400">24/7 - Siempre disponibles para ti</p>
+              </div>
             </div>
           </div>
 
