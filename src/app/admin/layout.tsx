@@ -189,17 +189,7 @@ export default function AdminLayout({
                         </DropdownMenuItem>
                     </Link>
                     
-                     <Link href="/admin/admins/new">
-                        <DropdownMenuItem className="p-3 gap-3 rounded-xl cursor-pointer hover:bg-white/5 focus:bg-white/5 transition-colors">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                <UserPlus className="w-4 h-4" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold">Añadir Administrador</span>
-                                <span className="text-[10px] text-muted-foreground">Crear nuevo acceso</span>
-                            </div>
-                        </DropdownMenuItem>
-                    </Link>
+
 
 
                     <div className="my-2 border-t border-white/5" />

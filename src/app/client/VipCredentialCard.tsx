@@ -2,7 +2,8 @@
 
 import React, { useRef, useState } from 'react'
 import { Calendar, Mail, Download, QrCode, Loader2 } from 'lucide-react'
-import { ClientDateTime } from '@/components/ui/client-datetime'
+import { format } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { toast } from 'sonner'
 import * as htmlToImage from 'html-to-image'
 
@@ -21,14 +22,21 @@ export default function VipCredentialCard({ profile, latestMembership, mStatus }
     
     setDownloading(true)
     try {
+      const node = cardRef.current
+      const width = node.offsetWidth
+      const height = width / 1.586 // Proporción estricta de tarjeta de crédito (1.586 : 1)
+
       // html-to-image maneja CSS moderno de manera nativa sin fallar con colores lab/oklch
-      const dataUrl = await htmlToImage.toPng(cardRef.current, {
+      const dataUrl = await htmlToImage.toPng(node, {
         quality: 1.0,
         pixelRatio: 3, // High resolution
-        backgroundColor: '#0a0a0a',
+        width: width,
+        height: height,
         style: {
           transform: 'scale(1)',
-          transformOrigin: 'top left'
+          transformOrigin: 'top left',
+          width: `${width}px`,
+          height: `${height}px`
         }
       })
       
@@ -48,19 +56,28 @@ export default function VipCredentialCard({ profile, latestMembership, mStatus }
 
   const shortId = profile?.id ? profile.id.split('-')[0].toUpperCase() : 'VIP-0000X'
 
+  const formatCardDate = (dateString?: string, formatStr = 'dd/MM/yy') => {
+    if (!dateString) return 'XX/XX'
+    try {
+      return format(new Date(dateString), formatStr, { locale: es }).toUpperCase()
+    } catch {
+      return 'XX/XX'
+    }
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full flex flex-col items-center">
       {/* Contenedor de la vista previa descargable */}
       <div 
         ref={cardRef}
-        className="relative rounded-[2rem] sm:rounded-[2.5rem] bg-gradient-to-br from-zinc-900 via-black to-zinc-900 border border-white/10 shadow-[0_0_50px_-15px_rgba(255,255,255,0.1)] overflow-hidden group aspect-[1.6/1] sm:aspect-auto flex flex-col"
+        className="relative rounded-[1.5rem] sm:rounded-[2rem] bg-gradient-to-br from-zinc-900 via-black to-zinc-900 border border-white/10 shadow-[0_0_50px_-15px_rgba(255,255,255,0.1)] overflow-hidden group w-full max-w-[500px] aspect-[1.586/1] flex flex-col justify-between"
       >
         {/* Holographic / Textural effects */}
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 pointer-events-none" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none group-hover:bg-primary/30 transition-colors duration-700" />
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/10 rounded-full blur-[60px] -ml-20 -mb-20 pointer-events-none" />
-
-        <div className="relative z-10 p-6 sm:p-10 flex flex-col flex-1 justify-between gap-6">
+        
+        <div className="relative z-10 p-5 sm:p-7 flex flex-col h-full justify-between">
           
           {/* Header de la Tarjeta */}
           <div className="flex items-start justify-between">
@@ -94,45 +111,47 @@ export default function VipCredentialCard({ profile, latestMembership, mStatus }
           </div>
 
           {/* Datos Centrales (Nombre y QR) */}
-          <div className="mt-4 sm:mt-8 flex justify-between items-end gap-4 flex-1">
+          <div className="flex justify-between items-end gap-3 mt-auto mb-4">
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Titular de la cuenta</p>
-              <p className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-widest uppercase drop-shadow-lg break-words leading-none">
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">Titular de la cuenta</p>
+              <p className="text-xl sm:text-2xl font-black text-white tracking-widest uppercase drop-shadow-lg break-words leading-none">
                 {profile?.full_name || 'USUARIO VIP'}
               </p>
-              <p className="text-[9px] text-primary/80 font-black uppercase tracking-widest mt-2">{shortId}</p>
+              <p className="text-[8px] text-primary/80 font-black uppercase tracking-widest mt-1">{shortId}</p>
             </div>
 
             {/* Código QR decorativo */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white p-1.5 sm:p-2 rounded-xl flex items-center justify-center shrink-0 shadow-xl">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white p-1.5 rounded-xl flex items-center justify-center shrink-0 shadow-xl">
               <QrCode className="w-full h-full text-black" strokeWidth={1.5} />
             </div>
           </div>
 
           {/* Grid de Metadatos Footer */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4 sm:mt-6 pt-4 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-3 border-t border-white/10">
             <div>
-              <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-white/40 flex items-center gap-1 mb-1 truncate">
-                <Mail className="w-2.5 h-2.5" /> E-Mail
+              <p className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-widest text-primary/70 flex items-center gap-1 mb-0.5 truncate">
+                <Mail className="w-2 h-2" /> E-Mail
               </p>
-              <p className="text-xs font-bold text-white/90 truncate">{profile?.email || 'N/A'}</p>
+              <p className="text-[9px] sm:text-[10px] font-black text-white truncate drop-shadow-md">
+                {profile?.email || 'N/A'}
+              </p>
             </div>
             
             <div className="text-center">
-              <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1">
+              <p className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-widest text-primary/70 mb-0.5">
                 Desde
               </p>
-              <p className="text-xs font-bold text-white/90">
-                {profile?.created_at ? <ClientDateTime date={profile.created_at} options={{ month: '2-digit', year: '2-digit' }} /> : 'XX/XX'}
+              <p className="text-[10px] sm:text-xs font-black text-white drop-shadow-md" suppressHydrationWarning>
+                {formatCardDate(profile?.created_at, 'MMM yy')}
               </p>
             </div>
 
             <div className="text-right">
-              <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-white/40 mb-1 flex items-center justify-end gap-1">
+              <p className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-primary/70 mb-1 flex items-center justify-end gap-1">
                 Vence <Calendar className="w-2.5 h-2.5" />
               </p>
-              <p className="text-xs font-bold text-white/90">
-                {latestMembership?.end_date ? <ClientDateTime date={latestMembership.end_date} options={{ day: '2-digit', month: '2-digit', year: '2-digit' }} /> : '∞'}
+              <p className="text-[10px] sm:text-xs font-black text-white drop-shadow-md" suppressHydrationWarning>
+                {latestMembership?.end_date ? formatCardDate(latestMembership.end_date, 'dd/MM/yy') : 'VITALICIO'}
               </p>
             </div>
           </div>
@@ -143,7 +162,7 @@ export default function VipCredentialCard({ profile, latestMembership, mStatus }
       <button
         onClick={handleDownload}
         disabled={downloading}
-        className="w-full flex items-center justify-center gap-2 py-4 bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all rounded-2xl border border-primary/20 shadow-lg shadow-primary/10 group focus:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+        className="w-full max-w-[500px] mx-auto flex items-center justify-center gap-2 py-4 bg-primary/10 hover:bg-primary text-primary hover:text-white transition-all rounded-2xl border border-primary/20 shadow-lg shadow-primary/10 group focus:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
       >
         {downloading ? (
           <Loader2 className="w-5 h-5 animate-spin" />

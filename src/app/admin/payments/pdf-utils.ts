@@ -1,5 +1,3 @@
-import jsPDF from 'jspdf'
-
 interface ReceiptData {
   folio: string
   customerName: string
@@ -24,7 +22,8 @@ interface ReceiptData {
   companyAddress?: string
 }
 
-export function generateReceiptPDF(data: ReceiptData): jsPDF {
+export async function generateReceiptPDF(data: ReceiptData): Promise<any> {
+  const { jsPDF } = await import('jspdf')
   // Configuración del ticket (80mm ancho x alto dinámico aproximado)
   const doc = new jsPDF({
     orientation: 'portrait',

@@ -50,7 +50,7 @@ export default function ReceiptsClient({ initialReceipts, currentAdmin }: { init
     })
   }, [initialReceipts, searchTerm])
 
-  const handleViewBoleta = (receipt: any) => {
+  const handleViewBoleta = async (receipt: any) => {
     const boletaData = {
       folio: receipt.id.substring(0, 8).toUpperCase(),
       customerName: receipt.membership?.profile?.full_name || 'Cliente',
@@ -72,7 +72,7 @@ export default function ReceiptsClient({ initialReceipts, currentAdmin }: { init
       companyRuc: '20123456789',
       companyAddress: 'Sede Central - Área VIP'
     }
-    const doc = generateReceiptPDF(boletaData)
+    const doc = await generateReceiptPDF(boletaData)
     const pdfUrl = doc.output('bloburl')
     window.open(pdfUrl, '_blank')
   }
@@ -100,7 +100,7 @@ export default function ReceiptsClient({ initialReceipts, currentAdmin }: { init
       companyAddress: 'Sede Central - Área VIP'
     }
 
-    const pdf = generateReceiptPDF(boletaData)
+    const pdf = await generateReceiptPDF(boletaData)
     const pdfBlob = pdf.output('blob')
     const file = new File([pdfBlob], `Boleta_VIP_${boletaData.folio}.pdf`, { type: 'application/pdf' })
 

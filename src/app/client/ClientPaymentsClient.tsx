@@ -7,7 +7,7 @@ import { generateReceiptPDF } from '../admin/payments/pdf-utils'
 
 export default function ClientPaymentsClient({ payments, profile }: { payments: any[], profile: any }) {
   
-  const handleDownloadPDF = (payment: any) => {
+  const handleDownloadPDF = async (payment: any) => {
     const plan = payment.memberships?.plans
     const admin = payment.profiles // recording_admin_id relation
     
@@ -33,7 +33,7 @@ export default function ClientPaymentsClient({ payments, profile }: { payments: 
       companyAddress: 'Sede Central - Área VIP'
     }
 
-    const doc = generateReceiptPDF(receiptData)
+    const doc = await generateReceiptPDF(receiptData)
     doc.save(`Boleta_${receiptData.folio}.pdf`)
   }
 

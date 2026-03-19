@@ -179,7 +179,7 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
 
   const handleDownloadPDF = async () => {
     if (!lastPaymentData) return
-    const doc = generateReceiptPDF(lastPaymentData)
+    const doc = await generateReceiptPDF(lastPaymentData)
     doc.save(`Boleta_${lastPaymentData.folio}.pdf`)
   }
 
@@ -187,7 +187,7 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
     if (!lastPaymentData) return
     setIsUploading(true)
     try {
-      const pdf = generateReceiptPDF(lastPaymentData)
+      const pdf = await generateReceiptPDF(lastPaymentData)
       const pdfBlob = pdf.output('blob')
       const file = new File([pdfBlob], `Boleta_VIP_${lastPaymentData.folio}.pdf`, { type: 'application/pdf' })
 
@@ -198,7 +198,7 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
           text: `Hola ${lastPaymentData.customerName.split(' ')[0]}, aquí tienes tu boleta de pago.`
         })
       } else {
-        const doc = generateReceiptPDF(lastPaymentData)
+        const doc = await generateReceiptPDF(lastPaymentData)
         doc.save(`Boleta_${lastPaymentData.folio}.pdf`)
         const message = `Hola *${lastPaymentData.customerName.split(' ')[0]}*, adjunto tu boleta de pago de *Membresías VIP*.\n\n¡Sigue disfrutando de tu plan! 🚀`
         const phone = lastPaymentData.customerPhone.replace(/[^0-9]/g, '')
@@ -448,18 +448,23 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
 
       {/* MODAL: ÉXITO */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
-        <DialogContent className="max-w-[450px] p-0 bg-transparent border-none shadow-none focus:outline-none">
-          <div className="bg-zinc-900/95 p-6 rounded-[2.5rem] border border-white/10 flex flex-col items-center shadow-2xl animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4"><CheckCircle2 className="w-8 h-8 text-emerald-500" /></div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tighter">¡Vendido!</h2>
+        <DialogContent className="w-[95vw] max-w-[450px] p-0 bg-transparent border-none shadow-none focus:outline-none overflow-y-auto max-h-[95vh]">
+          <div className="bg-zinc-900/95 p-5 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] border border-white/10 flex flex-col items-center shadow-2xl animate-in zoom-in-95">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4"><CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-500" /></div>
+            <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-tighter">¡Vendido!</h2>
             {lastPaymentData && (
-              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-2xl my-6 animate-in slide-in-from-bottom-4">
+              <div className="w-full bg-white rounded-2xl overflow-hidden shadow-2xl my-4 sm:my-6 animate-in slide-in-from-bottom-4">
                 <PaymentTicket ref={ticketRef} data={lastPaymentData} />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3 w-full">
-               <Button onClick={handleDownloadPDF} variant="outline" className="rounded-xl border-white/20 hover:bg-white/5 font-bold uppercase text-[10px] h-12 text-white">Descargar</Button>
-               <Button onClick={handleShareWhatsApp} className="rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black uppercase text-[10px] h-12 text-white">WhatsApp</Button>
+            <div className="flex flex-col gap-3 w-full">
+               <div className="grid grid-cols-2 gap-3 w-full">
+                  <Button onClick={handleDownloadPDF} variant="outline" className="rounded-xl border-white/20 hover:bg-white/5 font-bold uppercase text-[10px] sm:text-xs h-12 text-white shadow-xl">Descargar</Button>
+                  <Button onClick={handleShareWhatsApp} className="rounded-xl bg-emerald-600 hover:bg-emerald-500 font-black uppercase text-[10px] sm:text-xs h-12 text-white shadow-xl shadow-emerald-600/20">WhatsApp</Button>
+               </div>
+               <Button onClick={() => setShowSuccess(false)} variant="ghost" className="rounded-xl font-bold uppercase text-[10px] sm:text-xs h-10 sm:h-12 text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+                  Cerrar Ventana
+               </Button>
             </div>
           </div>
         </DialogContent>
