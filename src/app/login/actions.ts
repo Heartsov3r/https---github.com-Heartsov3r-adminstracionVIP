@@ -30,9 +30,14 @@ export async function login(formData: FormData) {
     redirect('/login?error=Error+inesperado')
   }
 
-  // De momento, redirigimos todos a admin. Si tuvieramos tabla profile, 
-  // haríamos la query aquí para separar admin de client
-  redirect('/admin')
+  // Consultar rol para redirigir correctamente
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  redirect(profile?.role === 'admin' ? '/admin' : '/client')
 }
 
 export async function logout() {
