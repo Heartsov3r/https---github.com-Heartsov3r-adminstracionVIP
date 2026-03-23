@@ -1,15 +1,23 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Shield, ShieldCheck, AlertTriangle, CheckCircle2, ScrollText, ChevronDown } from 'lucide-react'
-import { acceptTerms } from './actions'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useTransition } from 'react'
+import { Shield, ShieldCheck, AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react'
+
+const SESSION_KEY = 'vip_terms_accepted'
 
 export default function TermsModal() {
   const [accepted, setAccepted] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [visible, setVisible] = useState(false)
   const [isPending, startTransition] = useTransition()
-  const router = useRouter()
+
+  // Verificar sessionStorage al montar (solo muestra si no aceptó en ESTA sesión)
+  useEffect(() => {
+    const alreadyAccepted = sessionStorage.getItem(SESSION_KEY) === 'true'
+    if (!alreadyAccepted) {
+      setVisible(true)
+    }
+  }, [])
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
@@ -18,11 +26,13 @@ export default function TermsModal() {
   }
 
   const handleAccept = () => {
-    startTransition(async () => {
-      await acceptTerms()
-      router.refresh()
+    startTransition(() => {
+      sessionStorage.setItem(SESSION_KEY, 'true')
+      setVisible(false)
     })
   }
+
+  if (!visible) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
@@ -47,16 +57,15 @@ export default function TermsModal() {
             </div>
           </div>
           <p className="text-xs text-white/50 font-medium leading-relaxed">
-            Lee y acepta nuestros términos para continuar usando la plataforma. Este acuerdo es de carácter obligatorio.
+            Lee y acepta nuestros términos para continuar usando la plataforma. Este acuerdo debe aceptarse en cada sesión.
           </p>
         </div>
 
         {/* Contenido scrollable */}
         <div
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5 text-white/70 text-xs sm:text-sm leading-relaxed scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+          className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-5 text-white/70 text-xs sm:text-sm leading-relaxed"
         >
-          {/* Introducción */}
           <p className="text-white/60 font-medium">
             Al adquirir cualquiera de nuestros servicios, usted acepta y se compromete a cumplir con las siguientes normas y políticas:
           </p>
@@ -88,7 +97,7 @@ export default function TermsModal() {
             </h3>
             <ul className="space-y-2 pl-8">
               <li className="relative before:absolute before:left-[-1rem] before:top-[0.4rem] before:w-1.5 before:h-1.5 before:rounded-full before:bg-primary/50">
-                <span className="font-bold text-white/80">Velocidad VIP:</span> Nos comprometemos a que la entrega de sus credenciales (correo, contraseña) se realice en el <span className="text-white/90 font-semibold">menor tiempo posible</span> tras la verificación del pago.
+                <span className="font-bold text-white/80">Velocidad VIP:</span> Nos comprometemos a que la entrega de sus credenciales se realice en el <span className="text-white/90 font-semibold">menor tiempo posible</span> tras la verificación del pago.
               </li>
               <li className="relative before:absolute before:left-[-1rem] before:top-[0.4rem] before:w-1.5 before:h-1.5 before:rounded-full before:bg-primary/50">
                 <span className="font-bold text-white/80">Atención Prioritaria:</span> El proceso es manual o semiautomático para garantizar que su perfil esté configurado correctamente antes de que usted ingrese.
@@ -102,7 +111,7 @@ export default function TermsModal() {
               <span className="w-6 h-6 rounded-lg bg-red-500/20 text-red-400 text-[10px] font-black flex items-center justify-center shrink-0">3</span>
               Prohibiciones y Sanciones 🚫
             </h3>
-            <p className="text-white/60 text-xs pl-8">Queda terminantemente <span className="text-red-400 font-bold">prohibido</span> realizar cualquier cambio en los datos de la cuenta entregada, incluyendo:</p>
+            <p className="text-white/60 text-xs pl-8">Queda terminantemente <span className="text-red-400 font-bold">prohibido</span> realizar cualquier cambio en la cuenta entregada:</p>
             <ul className="space-y-1.5 pl-8">
               {[
                 'Cambio de contraseña.',
@@ -119,7 +128,7 @@ export default function TermsModal() {
             <div className="flex items-start gap-3 mt-3 pt-3 border-t border-red-500/20">
               <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
               <p className="text-red-300 text-xs font-bold leading-relaxed">
-                Consecuencia Inmediata: Cualquier cambio en estos datos resultará en la <span className="uppercase">expulsión inmediata</span> del sistema y la <span className="uppercase">anulación de la membresía</span>, sin previo aviso y <span className="uppercase">sin derecho a reclamación, reembolso o reposición de servicio.</span>
+                Consecuencia Inmediata: Cualquier cambio resultará en la <span className="uppercase">expulsión inmediata</span> y <span className="uppercase">anulación de la membresía, sin derecho a reclamación, reembolso o reposición.</span>
               </p>
             </div>
           </div>
@@ -132,10 +141,10 @@ export default function TermsModal() {
             </h3>
             <ul className="space-y-2 pl-8">
               <li className="relative before:absolute before:left-[-1rem] before:top-[0.4rem] before:w-1.5 before:h-1.5 before:rounded-full before:bg-primary/50">
-                <span className="font-bold text-white/80">Alcance:</span> La garantía cubre únicamente fallos técnicos ajenos al mal uso del cliente (caídas de cuenta por actualización de la plataforma).
+                <span className="font-bold text-white/80">Alcance:</span> La garantía cubre únicamente fallos técnicos ajenos al mal uso del cliente.
               </li>
               <li className="relative before:absolute before:left-[-1rem] before:top-[0.4rem] before:w-1.5 before:h-1.5 before:rounded-full before:bg-primary/50">
-                <span className="font-bold text-white/80">Tiempo de Respuesta:</span> En caso de fallas globales, el tiempo de solución será lo más breve posible, notificando al usuario cualquier cambio de credenciales necesario para restablecer el servicio.
+                <span className="font-bold text-white/80">Tiempo de Respuesta:</span> En caso de fallas globales, el tiempo de solución será lo más breve posible, notificando al usuario cualquier cambio de credenciales necesario.
               </li>
             </ul>
           </div>
@@ -151,11 +160,10 @@ export default function TermsModal() {
             </p>
           </div>
 
-          {/* Spacer final para asegurar que llegue al fondo */}
           <div className="h-4" />
         </div>
 
-        {/* Footer con indicador de scroll y botón */}
+        {/* Footer */}
         <div className="px-6 sm:px-8 py-5 bg-zinc-900/80 border-t border-white/5 space-y-4 shrink-0">
           {!scrolled && (
             <p className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30 animate-pulse">
@@ -188,17 +196,8 @@ export default function TermsModal() {
                 : 'bg-white/5 text-white/20 cursor-not-allowed border border-white/5'
               }`}
           >
-            {isPending ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Procesando...
-              </>
-            ) : (
-              <>
-                <ShieldCheck className="w-4 h-4" />
-                Acepto los Términos y Condiciones
-              </>
-            )}
+            <ShieldCheck className="w-4 h-4" />
+            Acepto los Términos y Condiciones
           </button>
         </div>
       </div>

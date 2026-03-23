@@ -50,7 +50,7 @@ export default async function ClientPage() {
     )
   }
 
-  const { profile, latestMembership, payments, termsAccepted } = data
+  const { profile, latestMembership, payments } = data
 
   const today = getBusinessDate()
   let mStatus: 'Activa' | 'Por Vencer' | 'Vencida' | 'Sin plan' = 'Sin plan'
@@ -74,8 +74,8 @@ export default async function ClientPage() {
   return (
     <div className="p-4 sm:p-8 max-w-6xl mx-auto space-y-6 sm:space-y-10 animate-in fade-in duration-700 pb-20">
       
-      {/* Modal obligatorio de Términos y Condiciones */}
-      {!termsAccepted && <TermsModal />}
+      {/* Modal de Términos — se muestra en cada sesión nueva (sessionStorage) */}
+      <TermsModal />
       
       {/* ===== HERO GREETING ===== */}
       <div className="pt-2 sm:pt-4 space-y-1">
