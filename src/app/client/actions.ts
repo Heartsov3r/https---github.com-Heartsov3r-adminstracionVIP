@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function fetchMyStatus() {
   const supabase = await createClient()
@@ -21,8 +21,7 @@ export async function fetchMyStatus() {
 
   const latestMembership = memberships?.[0] || null
 
-  // 3. Pagos: primero obtenemos los IDs de membresías del usuario,
-  //    luego los pagos (no se puede hacer join directo con eq en manual_payments)
+  // 3. Pagos
   const { data: allUserMemberships } = await supabase
     .from('memberships')
     .select('id')
@@ -50,12 +49,31 @@ export async function fetchMyStatus() {
       userPayments = fetchedPayments || []
   }
 
+  // 4. Estado de aceptación de Términos
+  const termsAccepted = user.user_metadata?.terms_accepted === true
+
   return {
     data: {
       profile,
       latestMembership,
-      payments: userPayments
+      payments: userPayments,
+      termsAccepted,
     },
     error: null
   }
 }
+
+export async function acceptTerms() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'No autenticado' }
+
+  const adminClient = await createAdminClient()
+  const { error } = await adminClient.auth.admin.updateUserById(user.id, {
+    user_metadata: { ...user.user_metadata, terms_accepted: true }
+  })
+
+  if (error) return { error: error.message }
+  return { error: null }
+}
+
