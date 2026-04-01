@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAdminAction } from '@/app/admin/logs/actions'
 
@@ -60,12 +60,7 @@ export async function createUser(formData: FormData) {
   let newUserId: string | undefined
 
   if (serviceRoleKey) {
-    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const adminSupabase = await createAdminClient()
 
     const { data: adminData, error: adminError } = await adminSupabase.auth.admin.createUser({
       email,
@@ -95,6 +90,7 @@ export async function createUser(formData: FormData) {
       newUserId = adminData?.user?.id
     }
   } else {
+    // Si no hay service role, usamos el cliente anónimo público (solo para self-registro)
     const { createClient: createAnonClient } = await import('@supabase/supabase-js')
     const anonSupabase = createAnonClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -179,12 +175,7 @@ export async function deleteUser(userId: string) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (serviceRoleKey) {
     try {
-      const { createClient: createAdminClient } = await import('@supabase/supabase-js')
-      const adminSupabase = createAdminClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        serviceRoleKey,
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      )
+      const adminSupabase = await createAdminClient()
       
       const { error: authError } = await adminSupabase.auth.admin.deleteUser(userId)
       if (authError) {
@@ -223,14 +214,18 @@ export async function toggleUserRole(userId: string, currentRole: string) {
     return { success: true }
 }
 
-export async function assignPlanToUser(userId: string, _currentMembershipId: string | null, planId: string) {
+export async function assignPlanToUser(userId: string, _currentMembershipId: string | null, planId: string, reason: string) {
   // Ignoramos el ID de membresía actual para forzar la creación de un nuevo registro
   // y así generar un nuevo cobro pendiente independiente.
-  return renewMembership(userId, planId)
+  return renewMembership(userId, planId, reason)
 }
 
-export async function renewMembership(userId: string, planId: string) {
+export async function renewMembership(userId: string, planId: string, reason: string) {
   const supabase = await createClient()
+
+  if (!reason || reason.trim().length === 0) {
+    return { error: 'El motivo es obligatorio.' }
+  }
 
   // 1. Obtener la duración del plan
   const { data: planData } = await supabase.from('plans').select('duration_days, name').eq('id', planId).single()
@@ -272,7 +267,7 @@ export async function renewMembership(userId: string, planId: string) {
 
   if (error) return { error: error.message }
 
-  await logAdminAction('RENEW_MEMBERSHIP', `Renovó membresía con plan ${planData.name} (${planData.duration_days} días)`, userId)
+  await logAdminAction('RENEW_MEMBERSHIP', `Renovó membresía con plan ${planData.name} (${planData.duration_days} días). Motivo: ${reason.trim()}`, userId)
 
   revalidatePath('/admin/users')
   revalidatePath('/admin/payments')

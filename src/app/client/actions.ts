@@ -27,7 +27,7 @@ export async function fetchMyStatus() {
     .select('id')
     .eq('user_id', user.id)
   
-  let userPayments: any[] = []
+  let userPayments: Record<string, unknown>[] = []
   if (allUserMemberships && allUserMemberships.length > 0) {
       const { data: fetchedPayments } = await supabase
         .from('manual_payments')

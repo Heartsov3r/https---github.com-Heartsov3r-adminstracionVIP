@@ -7,14 +7,9 @@ import {
   DollarSign, 
   User, 
   Mail, 
-  Phone, 
   Calendar, 
-  Paperclip, 
-  MessageCircle,
-  HeadphonesIcon,
   ExternalLink,
   Zap,
-  Eye
 } from 'lucide-react'
 import { differenceInDays } from 'date-fns'
 import { getBusinessDate } from '@/lib/utils'

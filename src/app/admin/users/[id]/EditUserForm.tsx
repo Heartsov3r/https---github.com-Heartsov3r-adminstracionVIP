@@ -6,6 +6,7 @@ import { updateUserProfile, addMembershipDays } from './actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
@@ -21,6 +22,7 @@ export function EditUserForm({ user }: { user: any }) {
 
   // States for membership extension
   const [daysToAdd, setDaysToAdd] = useState<number>(31)
+  const [daysReason, setDaysReason] = useState('')
 
   const membership = user?.latestMembership
   const hasActiveMembership = membership && !isNaN(new Date(membership.end_date).getTime())
@@ -42,12 +44,14 @@ export function EditUserForm({ user }: { user: any }) {
   }
 
   async function handleAddDays() {
+    if (!daysReason.trim()) { alert('El motivo es obligatorio.'); return }
     startTransition(async () => {
-      const res = await addMembershipDays(user.id, membership?.id || null, daysToAdd)
+      const res = await addMembershipDays(user.id, membership?.id || null, daysToAdd, daysReason)
       if (res.error) {
         alert(res.error)
       } else {
         alert("Días añadidos con éxito")
+        setDaysReason('')
       }
     })
   }
@@ -118,13 +122,23 @@ export function EditUserForm({ user }: { user: any }) {
                   onChange={e => setDaysToAdd(parseInt(e.target.value) || 0)} 
                   min={1}
                 />
-                <Button onClick={handleAddDays} disabled={isPending || daysToAdd < 1}>
-                  Conceder Días
+                <Button onClick={handleAddDays} disabled={isPending || daysToAdd < 1 || !daysReason.trim()}>
+                   Conceder Días
                 </Button>
+             </div>
+             <div className="grid gap-2 mt-2">
+               <Label htmlFor="reason">Motivo <span className="text-red-500">*</span></Label>
+               <Textarea 
+                 id="reason" 
+                 value={daysReason} 
+                 onChange={e => setDaysReason(e.target.value)} 
+                 placeholder="Ej: Bonificación, cortesía..." 
+                 className="min-h-[60px] resize-none text-sm"
+               />
              </div>
              <p className="text-xs text-muted-foreground">
                Los días se sumarán a su fecha de expiración actual.
-             </p>
+              </p>
           </div>
         </CardContent>
       </Card>

@@ -227,9 +227,11 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
     if (!renewalMembership) return
     const formData = new FormData(e.currentTarget)
     const planId = formData.get('planId') as string
+    const reason = formData.get('reason') as string
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
     
     startTransitionLocal(async () => {
-      const { success, error } = await renewMembership(renewalMembership.profiles.id, planId)
+      const { success, error } = await renewMembership(renewalMembership.profiles.id, planId, reason)
       if (error) {
         alert(error)
       } else {
@@ -526,6 +528,10 @@ export default function PaymentsTable({ memberships, currentAdmin, paymentMethod
                     <SelectTrigger className="h-14 bg-white/5 rounded-2xl font-bold"><SelectValue /></SelectTrigger>
                     <SelectContent className="glass-card bg-zinc-900">{plans.filter((p: any) => p.is_active).map((p: any) => (<SelectItem key={p.id} value={p.id} className="font-bold underline-offset-4">{p.name} - ${Number(p.price).toFixed(2)}</SelectItem>))}</SelectContent>
                 </Select>
+            </div>
+            <div className="grid gap-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1">Motivo <span className="text-red-500">*</span></Label>
+                <Textarea name="reason" required placeholder="Ej: Renovación mensual, extensión de servicio..." className="bg-white/5 rounded-xl text-xs min-h-[80px] resize-none" />
             </div>
             <div className="flex gap-4 pt-2">
                 <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-xl" onClick={() => setRenewalMembership(null)}>Cerrar</Button>

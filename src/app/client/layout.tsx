@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { logout } from '@/app/login/actions'
-import { Button } from '@/components/ui/button'
 import { Grid, LogOut, User, ChevronDown } from 'lucide-react'
 import {
   DropdownMenu,

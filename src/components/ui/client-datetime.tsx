@@ -21,19 +21,18 @@ const DEFAULT_OPTIONS: Intl.DateTimeFormatOptions = {
  * @param date - Fecha a mostrar (ISO string, Date o timestamp). Si no se provee, usa la hora actual.
  */
 export function ClientDateTime({ date, className, options = DEFAULT_OPTIONS }: ClientDateTimeProps) {
-  const [dateStr, setDateStr] = useState<string>('')
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    // Se ejecuta en el navegador, donde conocemos la zona horaria real del usuario
-    const targetDate = date ? new Date(date) : new Date()
-    const formatted = new Intl.DateTimeFormat('es-PE', options).format(targetDate)
-    
-    // Capitalizar primera letra (útil para nombres de días/meses)
-    setDateStr(formatted.charAt(0).toUpperCase() + formatted.slice(1))
-  }, [date, options])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setIsMounted(true)
+  }, [])
 
-  // Mientras se hidrata, mostrar un placeholder invisible
-  if (!dateStr) return <span className={className} aria-hidden="true">&nbsp;</span>
+  if (!isMounted) return <span className={className} aria-hidden="true">&nbsp;</span>
+
+  const targetDate = date ? new Date(date) : new Date()
+  const formatted = new Intl.DateTimeFormat('es-PE', options).format(targetDate)
+  const dateStr = formatted.charAt(0).toUpperCase() + formatted.slice(1)
 
   return <span className={className}>{dateStr}</span>
 }

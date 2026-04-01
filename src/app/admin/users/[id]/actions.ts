@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { logAdminAction } from '@/app/admin/logs/actions'
 
@@ -70,12 +70,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
   // Actualizar Credentials en Auth.Users vía admin SDK
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (serviceRoleKey) {
-    const { createClient: createAdminClient } = await import('@supabase/supabase-js')
-    const adminSupabase = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      serviceRoleKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const adminSupabase = await createAdminClient()
 
     const updateData: any = {
       email: email,
@@ -105,8 +100,12 @@ export async function updateUserProfile(userId: string, formData: FormData) {
   return { success: true }
 }
 
-export async function addMembershipDays(userId: string, currentMembershipId: string | null, daysToAdd: number) {
+export async function addMembershipDays(userId: string, currentMembershipId: string | null, daysToAdd: number, reason: string) {
   const supabase = await createClient()
+
+  if (!reason || reason.trim().length === 0) {
+    return { error: 'El motivo es obligatorio.' }
+  }
 
   if (!currentMembershipId) {
     // Si no tiene membresía activa, creamos una desde hoy
@@ -138,10 +137,89 @@ export async function addMembershipDays(userId: string, currentMembershipId: str
     if (error) return { error: error.message }
   }
 
-  await logAdminAction('ADD_DAYS', `Añadió ${daysToAdd} días extra manuales a su suscripción`, userId)
+  await logAdminAction('ADD_DAYS', `Añadió ${daysToAdd} días extra. Motivo: ${reason.trim()}`, userId)
 
   revalidatePath(`/admin/users/${userId}`)
   revalidatePath('/admin/users')
+  return { success: true }
+}
+
+export async function subtractMembershipDays(userId: string, currentMembershipId: string | null, daysToSubtract: number, reason: string) {
+  const supabase = await createClient()
+
+  if (!reason || reason.trim().length === 0) {
+    return { error: 'El motivo es obligatorio.' }
+  }
+
+  if (!currentMembershipId) {
+    return { error: 'El cliente no tiene una membresía activa para restar días.' }
+  }
+
+  const { data: memData } = await supabase.from('memberships').select('end_date, start_date').eq('id', currentMembershipId).single()
+  if (!memData) return { error: 'Membresía no encontrada' }
+
+  const newEndDate = new Date(memData.end_date)
+  newEndDate.setDate(newEndDate.getDate() - daysToSubtract)
+
+  // No permitir que end_date sea anterior a start_date
+  if (newEndDate <= new Date(memData.start_date)) {
+    return { error: 'No se pueden restar tantos días. La fecha final quedaría antes o igual al inicio de la membresía.' }
+  }
+
+  const { error } = await supabase.from('memberships')
+    .update({ end_date: newEndDate.toISOString() })
+    .eq('id', currentMembershipId)
+
+  if (error) return { error: error.message }
+
+  await logAdminAction('SUBTRACT_DAYS', `Restó ${daysToSubtract} días de la suscripción. Motivo: ${reason.trim()}`, userId)
+
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  return { success: true }
+}
+
+export async function changeMembershipPlan(userId: string, membershipId: string, newPlanId: string, reason: string) {
+  const supabase = await createClient()
+
+  if (!reason || reason.trim().length === 0) {
+    return { error: 'El motivo es obligatorio.' }
+  }
+
+  // 1. Obtener datos del nuevo plan
+  const { data: newPlan } = await supabase.from('plans').select('id, name, duration_days, price').eq('id', newPlanId).single()
+  if (!newPlan) return { error: 'Plan no encontrado.' }
+
+  // 2. Obtener membresía actual
+  const { data: membership } = await supabase.from('memberships').select('start_date, plan_id, plans(name, price)').eq('id', membershipId).single()
+  if (!membership) return { error: 'Membresía no encontrada.' }
+
+  // 3. Recalcular end_date basado en start_date + duración del nuevo plan
+  const startDate = new Date(membership.start_date)
+  const newEndDate = new Date(startDate)
+  newEndDate.setDate(startDate.getDate() + newPlan.duration_days)
+
+  // 4. Actualizar membresía
+  const { error } = await supabase.from('memberships')
+    .update({ 
+      plan_id: newPlanId, 
+      end_date: newEndDate.toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', membershipId)
+
+  if (error) return { error: error.message }
+
+  const oldPlan: any = membership.plans
+  await logAdminAction(
+    'CHANGE_PLAN', 
+    `Cambió plan de "${oldPlan?.name || 'Sin plan'}" ($${oldPlan?.price || 0}) a "${newPlan.name}" ($${newPlan.price}). Motivo: ${reason.trim()}`, 
+    userId
+  )
+
+  revalidatePath(`/admin/users/${userId}`)
+  revalidatePath('/admin/users')
+  revalidatePath('/admin/payments')
   return { success: true }
 }
 

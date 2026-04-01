@@ -3,10 +3,11 @@
 import React, { useState, useTransition, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus, Search, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { MoreHorizontal, User, Users, Edit2, Shield, Calendar, Clock, Trash2, RefreshCw, Plus, Search, AlertTriangle, CheckCircle2, ArrowLeftRight, MinusCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { deleteUser, assignPlanToUser, renewMembership } from './actions'
-import { updateUserProfile, addMembershipDays } from './[id]/actions'
+import { updateUserProfile, addMembershipDays, subtractMembershipDays, changeMembershipPlan } from './[id]/actions'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Table,
   TableBody,
@@ -61,6 +62,8 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
   const [planUser, setPlanUser] = useState<any>(null)
   const [renewUser, setRenewUser] = useState<any>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [changePlanUser, setChangePlanUser] = useState<any>(null)
+  const [subtractDaysUser, setSubtractDaysUser] = useState<any>(null)
 
   function handleDelete() {
     if (!deleteId) return
@@ -93,9 +96,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const days = parseInt(formData.get('days') as string)
+    const reason = formData.get('reason') as string
     if (days < 1) return
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
     startTransition(async () => {
-      const res = await addMembershipDays(daysUser.id, daysUser.latestMembership?.id || null, days)
+      const res = await addMembershipDays(daysUser.id, daysUser.latestMembership?.id || null, days, reason)
       if (res.error) toast.error(res.error)
       else {
         toast.success(`Se han añadido ${days} días de gracia`)
@@ -108,9 +113,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const planId = formData.get('planId') as string
+    const reason = formData.get('reason') as string
     if (!planId) return
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
     startTransition(async () => {
-      const res = await assignPlanToUser(planUser.id, planUser.latestMembership?.id || null, planId)
+      const res = await assignPlanToUser(planUser.id, planUser.latestMembership?.id || null, planId, reason)
       if (res.error) toast.error(res.error)
       else {
         toast.success('Plan asignado correctamente')
@@ -123,9 +130,11 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
     const planId = formData.get('planId') as string
+    const reason = formData.get('reason') as string
     if (!planId) return
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
     startTransition(async () => {
-      const res = await renewMembership(renewUser.id, planId)
+      const res = await renewMembership(renewUser.id, planId, reason)
       if (res.error) toast.error(res.error)
       else {
         toast.success('¡Suscripción renovada con éxito!', {
@@ -133,6 +142,45 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
           icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         })
         setRenewUser(null)
+        router.refresh()
+      }
+    })
+  }
+
+  async function onSubmitChangePlan(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const planId = formData.get('planId') as string
+    const reason = formData.get('reason') as string
+    if (!planId) return
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
+    startTransition(async () => {
+      const res = await changeMembershipPlan(changePlanUser.id, changePlanUser.latestMembership?.id, planId, reason)
+      if (res.error) toast.error(res.error)
+      else {
+        toast.success('Plan cambiado correctamente', {
+          description: 'El plan de la membresía ha sido actualizado.',
+          icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        })
+        setChangePlanUser(null)
+        router.refresh()
+      }
+    })
+  }
+
+  async function onSubmitSubtractDays(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const days = parseInt(formData.get('days') as string)
+    const reason = formData.get('reason') as string
+    if (days < 1) return
+    if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
+    startTransition(async () => {
+      const res = await subtractMembershipDays(subtractDaysUser.id, subtractDaysUser.latestMembership?.id || null, days, reason)
+      if (res.error) toast.error(res.error)
+      else {
+        toast.success(`Se han restado ${days} días de la membresía`)
+        setSubtractDaysUser(null)
         router.refresh()
       }
     })
@@ -369,6 +417,31 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                       <RefreshCw className="w-4 h-4 text-white" /> Renovar
                     </Button>
                   </div>
+
+                  {/* Operaciones de corrección */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                    {editUser?.latestMembership && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="bg-amber-500/5 border-amber-500/20 rounded-xl text-xs font-bold gap-2 h-12 hover:bg-amber-500/10 text-amber-500"
+                        onClick={() => { setChangePlanUser(editUser); setEditUser(null); }}
+                      >
+                        <ArrowLeftRight className="w-4 h-4" /> Cambiar Plan
+                      </Button>
+                    )}
+                    
+                    {editUser?.latestMembership && (
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="bg-red-500/5 border-red-500/20 rounded-xl text-xs font-bold gap-2 h-12 hover:bg-red-500/10 text-red-500"
+                        onClick={() => { setSubtractDaysUser(editUser); setEditUser(null); }}
+                      >
+                        <MinusCircle className="w-4 h-4" /> Restar Días
+                      </Button>
+                    )}
+                  </div>
                 </div>
     
                 {/* SECCIÓN 3: Zona de Peligro */}
@@ -440,6 +513,10 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Días a Sumar</Label>
                     <Input type="number" name="days" defaultValue={5} min={1} required className="h-14 rounded-2xl bg-white/5 border-white/10 text-center text-2xl font-black" />
                  </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo del cambio <span className="text-red-500">*</span></Label>
+                    <Textarea name="reason" required placeholder="Ej: Bonificación por inconvenientes, cortesía..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
+                 </div>
                  <div className="flex gap-3">
                     <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setDaysUser(null)}>Cancelar</Button>
                     <Button type="submit" disabled={isPending} className="flex-1 premium-gradient h-12 rounded-2xl font-black">
@@ -477,6 +554,10 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                           </div>
                        </label>
                     ))}
+                 </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo <span className="text-red-500">*</span></Label>
+                    <Textarea name="reason" required placeholder="Ej: Primer plan asignado, cambio de paquete..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
                  </div>
                  <div className="flex gap-3">
                     <Button type="button" variant="ghost" className="flex-1 font-bold h-12" onClick={() => setPlanUser(null)}>Cancelar</Button>
@@ -517,10 +598,101 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                        </label>
                     ))}
                  </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo <span className="text-red-500">*</span></Label>
+                    <Textarea name="reason" required placeholder="Ej: Renovación mensual, extensión de servicio..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
+                 </div>
                  <div className="flex gap-3">
                     <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setRenewUser(null)}>Cancelar</Button>
                     <Button type="submit" disabled={isPending || plans.length === 0} className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-500/20">
                        Confirmar Ciclo
+                    </Button>
+                 </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL CAMBIAR PLAN (CORRECCIÓN) */}
+      <Dialog open={!!changePlanUser} onOpenChange={(val) => !val && setChangePlanUser(null)}>
+        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
+          {changePlanUser && (
+            <>
+              <DialogHeader className="items-center text-center">
+                 <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <ArrowLeftRight className="w-8 h-8 text-amber-500" />
+                </div>
+                <DialogTitle className="text-2xl font-black">Cambiar Plan Actual</DialogTitle>
+                <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se actualizará el plan de la membresía existente</p>
+              </DialogHeader>
+              <form onSubmit={onSubmitChangePlan} className="space-y-6 mt-4">
+                 <div className="bg-muted/30 p-4 rounded-2xl text-center">
+                    <p className="text-xs font-black text-muted-foreground uppercase opacity-60 mb-1">Cliente</p>
+                    <span className="font-bold text-sm">{changePlanUser?.full_name}</span>
+                    {changePlanUser?.latestMembership?.plan_id && (
+                      <p className="text-xs text-amber-500 font-bold mt-1">Plan actual: {plans.find(p => p.id === changePlanUser.latestMembership.plan_id)?.name || 'Desconocido'}</p>
+                    )}
+                 </div>
+                 <div className="grid gap-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+                    {plans.filter(p => p.id !== changePlanUser?.latestMembership?.plan_id).map(p => (
+                       <label key={p.id} className="relative group cursor-pointer">
+                          <input type="radio" name="planId" value={p.id} className="peer sr-only" required />
+                          <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-amber-500/10 peer-checked:border-amber-500/50 transition-all flex items-center justify-between">
+                             <div className="flex flex-col">
+                                <span className="font-black text-sm uppercase tracking-tight">{p.name}</span>
+                                <span className="text-xs text-muted-foreground">{p.duration_days} días</span>
+                             </div>
+                             <div className="text-lg font-black text-amber-500 group-hover:scale-110 transition-transform">${p.price}</div>
+                          </div>
+                       </label>
+                    ))}
+                 </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo del cambio <span className="text-red-500">*</span></Label>
+                    <Textarea name="reason" required placeholder="Ej: Error al asignar plan, el cliente solicitó cambio de plan..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
+                 </div>
+                 <div className="flex gap-3">
+                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setChangePlanUser(null)}>Cancelar</Button>
+                    <Button type="submit" disabled={isPending} className="flex-1 h-12 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black shadow-lg shadow-amber-500/20">
+                       {isPending ? 'Procesando...' : 'Confirmar Cambio'}
+                    </Button>
+                 </div>
+              </form>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL RESTAR DÍAS (SANCIÓN) */}
+      <Dialog open={!!subtractDaysUser} onOpenChange={(val) => !val && setSubtractDaysUser(null)}>
+        <DialogContent className="glass-card border-none md:max-w-sm rounded-[2rem] p-8">
+          {subtractDaysUser && (
+            <>
+              <DialogHeader className="items-center text-center">
+                <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4">
+                    <MinusCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <DialogTitle className="text-2xl font-black">Restar Días de Membresía</DialogTitle>
+                <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se descontarán días de la suscripción activa</p>
+              </DialogHeader>
+              <form onSubmit={onSubmitSubtractDays} className="space-y-6 mt-4">
+                 <div className="bg-muted/30 p-4 rounded-2xl text-center">
+                    <p className="text-xs font-black text-muted-foreground uppercase opacity-60 mb-1">Cliente Objetivo</p>
+                    <span className="font-bold text-sm">{subtractDaysUser?.full_name}</span>
+                 </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Días a Restar</Label>
+                    <Input type="number" name="days" defaultValue={1} min={1} required className="h-14 rounded-2xl bg-white/5 border-white/10 text-center text-2xl font-black text-red-500" />
+                 </div>
+                 <div className="grid gap-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo de la sanción <span className="text-red-500">*</span></Label>
+                    <Textarea name="reason" required placeholder="Ej: Violación de reglas, sanción disciplinaria, corrección de error..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
+                 </div>
+                 <div className="flex gap-3">
+                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setSubtractDaysUser(null)}>Cancelar</Button>
+                    <Button type="submit" disabled={isPending} className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black shadow-lg shadow-red-500/20">
+                        {isPending ? 'Procesando...' : 'Restar Días'}
                     </Button>
                  </div>
               </form>
