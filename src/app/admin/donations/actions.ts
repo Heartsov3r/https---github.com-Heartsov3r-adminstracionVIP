@@ -14,7 +14,6 @@ export async function fetchDonations() {
       amount,
       reason,
       receipt_url,
-      donation_date,
       created_at,
       donor_id,
       donor_name,
@@ -33,7 +32,7 @@ export async function fetchDonations() {
         full_name
       )
     `)
-    .order('donation_date', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (error) {
     console.error('Error fetching donations:', JSON.stringify(error, null, 2))

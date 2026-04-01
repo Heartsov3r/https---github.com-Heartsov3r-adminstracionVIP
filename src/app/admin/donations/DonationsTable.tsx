@@ -161,7 +161,7 @@ export default function DonationsTable({
                                   <div className="flex flex-col gap-1">
                                       <span className="font-bold text-xs">#{d.id.substring(0,8)}</span>
                                       <span className="text-[10px] font-black uppercase text-muted-foreground opacity-70">
-                                         <ClientDateTime date={d.donation_date} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
+                                         <ClientDateTime date={d.created_at} options={{ day: '2-digit', month: 'short', year: 'numeric' }} />
                                       </span>
                                   </div>
                               </TableCell>
