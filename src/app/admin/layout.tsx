@@ -22,7 +22,8 @@ import {
   User,
   BarChart3,
   FileText,
-  Wallet
+  Wallet,
+  Heart
 } from 'lucide-react'
 
 import {
@@ -54,6 +55,7 @@ export default function AdminLayout({
     { name: 'Usuarios', href: '/admin/users', icon: Users },
     { name: 'Planes', href: '/admin/plans', icon: CalendarDays },
     { name: 'Pagos', href: '/admin/payments', icon: CreditCard },
+    { name: 'Donaciones', href: '/admin/donations', icon: Heart },
     { name: 'Métodos de Pago', href: '/admin/payment-methods', icon: Wallet },
     { name: 'Recibos', href: '/admin/receipts', icon: FileText },
     { name: 'Reportes', href: '/admin/reports', icon: BarChart3 },
