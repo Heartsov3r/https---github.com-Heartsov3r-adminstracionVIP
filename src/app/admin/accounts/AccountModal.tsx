@@ -82,7 +82,7 @@ export function AccountModal({ account, onSuccess, trigger, openOverride, setOpe
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if(!val) resetForm(); }}>
       {trigger ? (
         <DialogTrigger 
-          render={trigger} 
+          render={<div>{trigger}</div>} 
         />
       ) : openOverride === undefined ? (
         <DialogTrigger 
