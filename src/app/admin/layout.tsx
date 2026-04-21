@@ -23,7 +23,8 @@ import {
   BarChart3,
   FileText,
   Wallet,
-  Heart
+  Heart,
+  KeyRound
 } from 'lucide-react'
 
 import {
@@ -60,6 +61,7 @@ export default function AdminLayout({
     { name: 'Recibos', href: '/admin/receipts', icon: FileText },
     { name: 'Reportes', href: '/admin/reports', icon: BarChart3 },
     { name: 'Logs', href: '/admin/logs', icon: Activity },
+    { name: 'Cuentas', href: '/admin/accounts', icon: KeyRound },
   ]
 
   const isActive = (path: string) => pathname === path
