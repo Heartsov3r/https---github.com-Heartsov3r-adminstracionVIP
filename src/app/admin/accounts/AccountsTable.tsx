@@ -334,21 +334,28 @@ export function AccountsTable({ accounts }: { accounts: any[] }) {
               <TableRow key={acc.id} className={`border-b border-white/5 transition-colors group ${!acc.is_active ? 'opacity-50 grayscale' : 'hover:bg-white/5'}`}>
                 <TableCell className="py-6 px-8">
                    <div className="flex items-center gap-5">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 transition-all ${acc.is_active ? 'bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/5 group-hover:scale-110' : 'bg-muted/10 border-white/5 text-muted-foreground'}`}>
-                         <User className="w-6 h-6" />
+                      <div 
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 transition-all cursor-pointer ${acc.is_active ? 'bg-primary/10 border-primary/20 text-primary shadow-lg shadow-primary/5 group-hover:scale-110 active:scale-95' : 'bg-muted/10 border-white/5 text-muted-foreground'}`}
+                        onClick={() => handleCopy(`${acc.email} : ${acc.password}`, acc.id + '-all')}
+                        title="Copiar todo (email : password)"
+                      >
+                         {copiedId === acc.id + '-all' ? <Check className="w-6 h-6 text-emerald-500" /> : <User className="w-6 h-6" />}
                       </div>
                       <div className="flex flex-col gap-2 min-w-0">
-                         <div className="flex items-center gap-2 group/copy cursor-pointer" onClick={() => handleCopy(acc.email, acc.id + '-email')}>
-                            <span className="text-sm font-black truncate max-w-[200px]">{acc.email}</span>
-                            <div className="h-6 w-6 rounded-md flex items-center justify-center opacity-0 group-hover/copy:opacity-100 transition-opacity bg-white/5">
+                         <div className="flex items-center gap-2 group/copy cursor-pointer" onClick={(e) => { e.stopPropagation(); handleCopy(acc.email, acc.id + '-email'); }}>
+                            <span className="text-sm font-black truncate max-w-[200px] hover:text-primary transition-colors">{acc.email}</span>
+                            <div className="h-6 w-6 rounded-md flex items-center justify-center sm:opacity-0 sm:group-hover/copy:opacity-100 opacity-100 transition-opacity bg-white/5">
                                {copiedId === acc.id + '-email' ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
                             </div>
                          </div>
                          <div className="flex items-center gap-2 group/pass">
-                            <span className="text-xs font-mono tracking-tighter bg-white/5 px-3 py-1 rounded-lg border border-white/5">
+                            <span 
+                              className="text-xs font-mono tracking-tighter bg-white/5 px-3 py-1 rounded-lg border border-white/5 cursor-pointer hover:bg-white/10 active:bg-white/20 transition-all"
+                              onClick={() => handleCopy(acc.password, acc.id + '-pass')}
+                            >
                                {showPasswords[acc.id] ? acc.password : '••••••••'}
                             </span>
-                            <div className="flex gap-1 opacity-0 group-hover/pass:opacity-100 transition-opacity">
+                            <div className="flex gap-1 sm:opacity-0 sm:group-hover/pass:opacity-100 opacity-100 transition-opacity">
                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => togglePassword(acc.id)}>
                                   {showPasswords[acc.id] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                </Button>
