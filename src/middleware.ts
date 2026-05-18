@@ -36,15 +36,21 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
     const url = request.nextUrl.clone()
     const isAuthPage = url.pathname.startsWith('/login')
     const isAdminPage = url.pathname.startsWith('/admin')
     const isClientPage = url.pathname.startsWith('/client')
     const isRootPage = url.pathname === '/'
+
+    // Solo verificar auth en rutas que lo necesitan
+    const needsAuth = isAdminPage || isClientPage || isAuthPage || isRootPage
+    if (!needsAuth) {
+      return supabaseResponse
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     // No autenticado: redirigir áreas protegidas a /login
     if (!user && (isAdminPage || isClientPage)) {
@@ -52,9 +58,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Autenticado: redirigir según rol
-    if (user && (isAuthPage || isRootPage)) {
-      // Leer rol desde profiles
+    // Solo consultar perfil una vez cuando es necesario
+    if (user && (isAuthPage || isRootPage || isAdminPage)) {
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -62,19 +67,15 @@ export async function middleware(request: NextRequest) {
         .single()
 
       const role = profile?.role
-      url.pathname = role === 'admin' ? '/admin' : '/client'
-      return NextResponse.redirect(url)
-    }
 
-    // Proteger rutas de admin: un cliente no puede ir a /admin
-    if (user && isAdminPage) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      
-      if (profile?.role !== 'admin') {
+      // Autenticado en login o raíz: redirigir según rol
+      if (isAuthPage || isRootPage) {
+        url.pathname = role === 'admin' ? '/admin' : '/client'
+        return NextResponse.redirect(url)
+      }
+
+      // Proteger rutas de admin: un cliente no puede ir a /admin
+      if (isAdminPage && role !== 'admin') {
         url.pathname = '/client'
         return NextResponse.redirect(url)
       }
