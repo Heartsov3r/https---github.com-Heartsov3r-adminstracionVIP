@@ -64,6 +64,9 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [changePlanUser, setChangePlanUser] = useState<any>(null)
   const [subtractDaysUser, setSubtractDaysUser] = useState<any>(null)
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('')
+
+  const standardPlans = useMemo(() => plans.filter(p => !p.description?.startsWith('CUSTOM_PLAN:')), [plans])
 
   function handleDelete() {
     if (!deleteId) return
@@ -116,12 +119,26 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     const reason = formData.get('reason') as string
     if (!planId) return
     if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
+
+    const customDays = planId === 'custom' ? parseInt(formData.get('customDays') as string) : undefined
+    const customPrice = planId === 'custom' ? parseFloat(formData.get('customPrice') as string) : undefined
+    const customDetails = planId === 'custom' ? (formData.get('customDetails') as string) : undefined
+
     startTransition(async () => {
-      const res = await assignPlanToUser(planUser.id, planUser.latestMembership?.id || null, planId, reason)
+      const res = await assignPlanToUser(
+        planUser.id, 
+        planUser.latestMembership?.id || null, 
+        planId, 
+        reason,
+        customDays,
+        customPrice,
+        customDetails
+      )
       if (res.error) toast.error(res.error)
       else {
         toast.success('Plan asignado correctamente')
         setPlanUser(null)
+        setSelectedPlanId('')
       }
     })
   }
@@ -133,8 +150,20 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     const reason = formData.get('reason') as string
     if (!planId) return
     if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
+
+    const customDays = planId === 'custom' ? parseInt(formData.get('customDays') as string) : undefined
+    const customPrice = planId === 'custom' ? parseFloat(formData.get('customPrice') as string) : undefined
+    const customDetails = planId === 'custom' ? (formData.get('customDetails') as string) : undefined
+
     startTransition(async () => {
-      const res = await renewMembership(renewUser.id, planId, reason)
+      const res = await renewMembership(
+        renewUser.id, 
+        planId, 
+        reason,
+        customDays,
+        customPrice,
+        customDetails
+      )
       if (res.error) toast.error(res.error)
       else {
         toast.success('¡Suscripción renovada con éxito!', {
@@ -142,6 +171,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
           icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         })
         setRenewUser(null)
+        setSelectedPlanId('')
         router.refresh()
       }
     })
@@ -154,8 +184,21 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
     const reason = formData.get('reason') as string
     if (!planId) return
     if (!reason || reason.trim().length === 0) { toast.error('El motivo es obligatorio.'); return }
+
+    const customDays = planId === 'custom' ? parseInt(formData.get('customDays') as string) : undefined
+    const customPrice = planId === 'custom' ? parseFloat(formData.get('customPrice') as string) : undefined
+    const customDetails = planId === 'custom' ? (formData.get('customDetails') as string) : undefined
+
     startTransition(async () => {
-      const res = await changeMembershipPlan(changePlanUser.id, changePlanUser.latestMembership?.id, planId, reason)
+      const res = await changeMembershipPlan(
+        changePlanUser.id, 
+        changePlanUser.latestMembership?.id, 
+        planId, 
+        reason,
+        customDays,
+        customPrice,
+        customDetails
+      )
       if (res.error) toast.error(res.error)
       else {
         toast.success('Plan cambiado correctamente', {
@@ -163,6 +206,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
           icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" />
         })
         setChangePlanUser(null)
+        setSelectedPlanId('')
         router.refresh()
       }
     })
@@ -530,23 +574,31 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
       </Dialog>
 
       {/* MODAL ASIGNAR PLAN */}
-      <Dialog open={!!planUser} onOpenChange={(val) => !val && setPlanUser(null)}>
+      <Dialog open={!!planUser} onOpenChange={(val) => { !val && setPlanUser(null); setSelectedPlanId(''); }}>
         <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
           {planUser && (
             <>
               <DialogHeader className="items-center text-center">
                  <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
                     <Plus className="w-8 h-8 text-primary" />
-                </div>
-                <DialogTitle className="text-2xl font-black tracking-tight">Vincular Nuevo Plan</DialogTitle>
+                 </div>
+                 <DialogTitle className="text-2xl font-black tracking-tight">Vincular Nuevo Plan</DialogTitle>
               </DialogHeader>
               <form onSubmit={onSubmitPlan} className="space-y-6 mt-4">
-                 <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
-                    {plans.map(p => (
+                 <div className="grid gap-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+                    {standardPlans.map(p => (
                        <label key={p.id} className="relative group cursor-pointer">
-                          <input type="radio" name="planId" value={p.id} className="peer sr-only" required />
+                          <input 
+                            type="radio" 
+                            name="planId" 
+                            value={p.id} 
+                            className="peer sr-only" 
+                            required 
+                            checked={selectedPlanId === p.id}
+                            onChange={() => setSelectedPlanId(p.id)}
+                          />
                           <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-primary/10 peer-checked:border-primary/50 transition-all flex items-center justify-between">
-                             <div className="flex flex-col">
+                             <div className="flex flex-col text-left">
                                 <span className="font-black text-sm uppercase tracking-tight">{p.name}</span>
                                 <span className="text-xs text-muted-foreground">{p.duration_days} días de acceso</span>
                              </div>
@@ -554,14 +606,72 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                           </div>
                        </label>
                     ))}
+
+                    <label className="relative group cursor-pointer">
+                       <input 
+                         type="radio" 
+                         name="planId" 
+                         value="custom" 
+                         className="peer sr-only" 
+                         required 
+                         checked={selectedPlanId === 'custom'}
+                         onChange={() => setSelectedPlanId('custom')}
+                       />
+                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-primary/10 peer-checked:border-primary/50 transition-all flex items-center justify-between">
+                          <div className="flex flex-col text-left">
+                             <span className="font-black text-sm uppercase tracking-tight text-amber-500">Plan Personalizado ⭐</span>
+                             <span className="text-xs text-muted-foreground">Configurar días y precio manualmente</span>
+                          </div>
+                          <div className="w-6 h-6 rounded-full border border-amber-500/30 flex items-center justify-center text-amber-500 font-bold text-xs">★</div>
+                       </div>
+                    </label>
                  </div>
+
+                 {selectedPlanId === 'custom' && (
+                    <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-top duration-300">
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Días de Validez</Label>
+                             <Input 
+                                type="number" 
+                                name="customDays" 
+                                min={1} 
+                                defaultValue={30} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-bold" 
+                             />
+                          </div>
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Precio ($)</Label>
+                             <Input 
+                                type="number" 
+                                step="0.01" 
+                                name="customPrice" 
+                                min={0} 
+                                defaultValue={0} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-black text-primary" 
+                             />
+                          </div>
+                       </div>
+                       <div className="grid gap-2 text-left">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Detalles de la Suscripción</Label>
+                          <Input 
+                             name="customDetails" 
+                             placeholder="Ej: Suscripción especial negociada con cliente..." 
+                             className="h-11 bg-white/5 border-white/10 rounded-xl font-medium" 
+                          />
+                       </div>
+                    </div>
+                 )}
+
                  <div className="grid gap-2">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo <span className="text-red-500">*</span></Label>
                     <Textarea name="reason" required placeholder="Ej: Primer plan asignado, cambio de paquete..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
                  </div>
                  <div className="flex gap-3">
-                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12" onClick={() => setPlanUser(null)}>Cancelar</Button>
-                    <Button type="submit" disabled={isPending || plans.length === 0} className="flex-1 premium-gradient h-12 rounded-2xl font-black text-white">
+                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12" onClick={() => { setPlanUser(null); setSelectedPlanId(''); }}>Cancelar</Button>
+                    <Button type="submit" disabled={isPending} className="flex-1 premium-gradient h-12 rounded-2xl font-black text-white">
                        Asignar Ahora
                     </Button>
                  </div>
@@ -572,24 +682,32 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
       </Dialog>
 
       {/* MODAL RENOVAR MEMBRESÍA (NUEVO CICLO) */}
-      <Dialog open={!!renewUser} onOpenChange={(val) => !val && setRenewUser(null)}>
+      <Dialog open={!!renewUser} onOpenChange={(val) => { !val && setRenewUser(null); setSelectedPlanId(''); }}>
         <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
           {renewUser && (
             <>
               <DialogHeader className="items-center text-center">
                  <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <RefreshCw className="w-8 h-8 text-emerald-500" />
-                </div>
-                <DialogTitle className="text-2xl font-black">Renovar Suscripción</DialogTitle>
-                <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se iniciará un nuevo ciclo de facturación independiente</p>
+                 </div>
+                 <DialogTitle className="text-2xl font-black">Renovar Suscripción</DialogTitle>
+                 <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se iniciará un nuevo ciclo de facturación independiente</p>
               </DialogHeader>
               <form onSubmit={onSubmitRenew} className="space-y-6 mt-4">
-                 <div className="grid gap-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin">
-                    {plans.map(p => (
+                 <div className="grid gap-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
+                    {standardPlans.map(p => (
                        <label key={p.id} className="relative group cursor-pointer">
-                          <input type="radio" name="planId" value={p.id} className="peer sr-only" required />
+                          <input 
+                            type="radio" 
+                            name="planId" 
+                            value={p.id} 
+                            className="peer sr-only" 
+                            required 
+                            checked={selectedPlanId === p.id}
+                            onChange={() => setSelectedPlanId(p.id)}
+                          />
                           <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-emerald-500/10 peer-checked:border-emerald-500/50 transition-all flex items-center justify-between">
-                             <div className="flex flex-col">
+                             <div className="flex flex-col text-left">
                                 <span className="font-black text-sm uppercase tracking-tight">{p.name}</span>
                                 <span className="text-xs text-muted-foreground">{p.duration_days} días</span>
                              </div>
@@ -597,14 +715,72 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                           </div>
                        </label>
                     ))}
+
+                    <label className="relative group cursor-pointer">
+                       <input 
+                         type="radio" 
+                         name="planId" 
+                         value="custom" 
+                         className="peer sr-only" 
+                         required 
+                         checked={selectedPlanId === 'custom'}
+                         onChange={() => setSelectedPlanId('custom')}
+                       />
+                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-emerald-500/10 peer-checked:border-emerald-500/50 transition-all flex items-center justify-between">
+                          <div className="flex flex-col text-left">
+                             <span className="font-black text-sm uppercase tracking-tight text-amber-500">Plan Personalizado ⭐</span>
+                             <span className="text-xs text-muted-foreground">Configurar días y precio manualmente</span>
+                          </div>
+                          <div className="w-6 h-6 rounded-full border border-amber-500/30 flex items-center justify-center text-amber-500 font-bold text-xs">★</div>
+                       </div>
+                    </label>
                  </div>
+
+                 {selectedPlanId === 'custom' && (
+                    <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-top duration-300">
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Días de Validez</Label>
+                             <Input 
+                                type="number" 
+                                name="customDays" 
+                                min={1} 
+                                defaultValue={30} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-bold" 
+                             />
+                          </div>
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Precio ($)</Label>
+                             <Input 
+                                type="number" 
+                                step="0.01" 
+                                name="customPrice" 
+                                min={0} 
+                                defaultValue={0} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-black text-emerald-500" 
+                             />
+                          </div>
+                       </div>
+                       <div className="grid gap-2 text-left">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Detalles de la Suscripción</Label>
+                          <Input 
+                             name="customDetails" 
+                             placeholder="Ej: Renovación especial negociada con cliente..." 
+                             className="h-11 bg-white/5 border-white/10 rounded-xl font-medium" 
+                          />
+                       </div>
+                    </div>
+                 )}
+
                  <div className="grid gap-2">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo <span className="text-red-500">*</span></Label>
                     <Textarea name="reason" required placeholder="Ej: Renovación mensual, extensión de servicio..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
                  </div>
                  <div className="flex gap-3">
-                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setRenewUser(null)}>Cancelar</Button>
-                    <Button type="submit" disabled={isPending || plans.length === 0} className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-500/20">
+                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => { setRenewUser(null); setSelectedPlanId(''); }}>Cancelar</Button>
+                    <Button type="submit" disabled={isPending} className="flex-1 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-lg shadow-emerald-500/20">
                        Confirmar Ciclo
                     </Button>
                  </div>
@@ -615,16 +791,16 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
       </Dialog>
 
       {/* MODAL CAMBIAR PLAN (CORRECCIÓN) */}
-      <Dialog open={!!changePlanUser} onOpenChange={(val) => !val && setChangePlanUser(null)}>
+      <Dialog open={!!changePlanUser} onOpenChange={(val) => { !val && setChangePlanUser(null); setSelectedPlanId(''); }}>
         <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
           {changePlanUser && (
             <>
               <DialogHeader className="items-center text-center">
                  <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center mb-4">
                     <ArrowLeftRight className="w-8 h-8 text-amber-500" />
-                </div>
-                <DialogTitle className="text-2xl font-black">Cambiar Plan Actual</DialogTitle>
-                <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se actualizará el plan de la membresía existente</p>
+                 </div>
+                 <DialogTitle className="text-2xl font-black">Cambiar Plan Actual</DialogTitle>
+                 <p className="text-xs text-muted-foreground font-bold italic opacity-60">Se actualizará el plan de la membresía existente</p>
               </DialogHeader>
               <form onSubmit={onSubmitChangePlan} className="space-y-6 mt-4">
                  <div className="bg-muted/30 p-4 rounded-2xl text-center">
@@ -635,11 +811,19 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                     )}
                  </div>
                  <div className="grid gap-4 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin">
-                    {plans.filter(p => p.id !== changePlanUser?.latestMembership?.plan_id).map(p => (
+                    {standardPlans.filter(p => p.id !== changePlanUser?.latestMembership?.plan_id).map(p => (
                        <label key={p.id} className="relative group cursor-pointer">
-                          <input type="radio" name="planId" value={p.id} className="peer sr-only" required />
+                          <input 
+                            type="radio" 
+                            name="planId" 
+                            value={p.id} 
+                            className="peer sr-only" 
+                            required 
+                            checked={selectedPlanId === p.id}
+                            onChange={() => setSelectedPlanId(p.id)}
+                          />
                           <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-amber-500/10 peer-checked:border-amber-500/50 transition-all flex items-center justify-between">
-                             <div className="flex flex-col">
+                             <div className="flex flex-col text-left">
                                 <span className="font-black text-sm uppercase tracking-tight">{p.name}</span>
                                 <span className="text-xs text-muted-foreground">{p.duration_days} días</span>
                              </div>
@@ -647,13 +831,71 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
                           </div>
                        </label>
                     ))}
+
+                    <label className="relative group cursor-pointer">
+                       <input 
+                         type="radio" 
+                         name="planId" 
+                         value="custom" 
+                         className="peer sr-only" 
+                         required 
+                         checked={selectedPlanId === 'custom'}
+                         onChange={() => setSelectedPlanId('custom')}
+                       />
+                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-white/10 peer-checked:bg-amber-500/10 peer-checked:border-amber-500/50 transition-all flex items-center justify-between">
+                          <div className="flex flex-col text-left">
+                             <span className="font-black text-sm uppercase tracking-tight text-amber-500">Plan Personalizado ⭐</span>
+                             <span className="text-xs text-muted-foreground">Configurar días y precio manualmente</span>
+                          </div>
+                          <div className="w-6 h-6 rounded-full border border-amber-500/30 flex items-center justify-center text-amber-500 font-bold text-xs">★</div>
+                       </div>
+                    </label>
                  </div>
+
+                 {selectedPlanId === 'custom' && (
+                    <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5 animate-in slide-in-from-top duration-300">
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Días de Validez</Label>
+                             <Input 
+                                type="number" 
+                                name="customDays" 
+                                min={1} 
+                                defaultValue={30} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-bold" 
+                             />
+                          </div>
+                          <div className="grid gap-2 text-left">
+                             <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Precio ($)</Label>
+                             <Input 
+                                type="number" 
+                                step="0.01" 
+                                name="customPrice" 
+                                min={0} 
+                                defaultValue={0} 
+                                required 
+                                className="h-11 bg-white/5 border-white/10 rounded-xl font-black text-amber-500" 
+                             />
+                          </div>
+                       </div>
+                       <div className="grid gap-2 text-left">
+                          <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Detalles de la Suscripción</Label>
+                          <Input 
+                             name="customDetails" 
+                             placeholder="Ej: Cambio a condiciones de suscripción especiales..." 
+                             className="h-11 bg-white/5 border-white/10 rounded-xl font-medium" 
+                          />
+                       </div>
+                    </div>
+                 )}
+
                  <div className="grid gap-2">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground ml-1 tracking-widest leading-none">Motivo del cambio <span className="text-red-500">*</span></Label>
                     <Textarea name="reason" required placeholder="Ej: Error al asignar plan, el cliente solicitó cambio de plan..." className="rounded-2xl bg-white/5 border-white/10 min-h-[80px] text-sm font-medium resize-none" />
                  </div>
                  <div className="flex gap-3">
-                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => setChangePlanUser(null)}>Cancelar</Button>
+                    <Button type="button" variant="ghost" className="flex-1 font-bold h-12 rounded-2xl" onClick={() => { setChangePlanUser(null); setSelectedPlanId(''); }}>Cancelar</Button>
                     <Button type="submit" disabled={isPending} className="flex-1 h-12 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-black shadow-lg shadow-amber-500/20">
                        {isPending ? 'Procesando...' : 'Confirmar Cambio'}
                     </Button>

@@ -214,22 +214,74 @@ export async function toggleUserRole(userId: string, currentRole: string) {
     return { success: true }
 }
 
-export async function assignPlanToUser(userId: string, _currentMembershipId: string | null, planId: string, reason: string) {
+export async function assignPlanToUser(
+  userId: string, 
+  _currentMembershipId: string | null, 
+  planId: string, 
+  reason: string,
+  customDays?: number,
+  customPrice?: number,
+  customDetails?: string
+) {
   // Ignoramos el ID de membresía actual para forzar la creación de un nuevo registro
   // y así generar un nuevo cobro pendiente independiente.
-  return renewMembership(userId, planId, reason)
+  return renewMembership(userId, planId, reason, customDays, customPrice, customDetails)
 }
 
-export async function renewMembership(userId: string, planId: string, reason: string) {
+export async function renewMembership(
+  userId: string, 
+  planId: string, 
+  reason: string,
+  customDays?: number,
+  customPrice?: number,
+  customDetails?: string
+) {
   const supabase = await createClient()
 
   if (!reason || reason.trim().length === 0) {
     return { error: 'El motivo es obligatorio.' }
   }
 
-  // 1. Obtener la duración del plan
-  const { data: planData } = await supabase.from('plans').select('duration_days, name').eq('id', planId).single()
-  if (!planData) return { error: 'Plan no encontrado' }
+  let finalPlanId = planId
+  let planDuration = 0
+  let planName = ''
+
+  if (planId === 'custom') {
+    if (!customDays || isNaN(customDays) || customDays < 1) {
+      return { error: 'Los días del plan personalizado son inválidos o menores a 1.' }
+    }
+    const finalPrice = customPrice !== undefined && !isNaN(customPrice) ? customPrice : 0
+    const finalDetails = customDetails?.trim() || 'Plan personalizado asignado por administrador'
+
+    // Insertar el plan personalizado
+    const { data: newPlan, error: planError } = await supabase
+      .from('plans')
+      .insert({
+        name: 'Personalizado',
+        description: `CUSTOM_PLAN: ${finalDetails}`,
+        price: finalPrice,
+        duration_days: customDays,
+        is_active: false // para que no aparezca en la lista de planes comerciales estándar
+      })
+      .select('id, name, duration_days')
+      .single()
+
+    if (planError) {
+      console.error('Error al crear plan personalizado:', planError.message)
+      return { error: `Fallo al crear plan personalizado: ${planError.message}` }
+    }
+
+    finalPlanId = newPlan.id
+    planDuration = newPlan.duration_days
+    planName = newPlan.name
+  } else {
+    // 1. Obtener la duración del plan
+    const { data: planData } = await supabase.from('plans').select('duration_days, name').eq('id', planId).single()
+    if (!planData) return { error: 'Plan no encontrado' }
+    
+    planDuration = planData.duration_days
+    planName = planData.name
+  }
 
   // 2. Obtener la última membresía para ver cuándo termina
   // Usamos una consulta normal y tomamos el primer resultado para evitar errores de .single() si no hay registros
@@ -255,19 +307,19 @@ export async function renewMembership(userId: string, planId: string, reason: st
   }
 
   const endDate = new Date(startDate)
-  endDate.setDate(startDate.getDate() + planData.duration_days)
+  endDate.setDate(startDate.getDate() + planDuration)
 
   // 3. Crear nueva membresía
   const { error } = await supabase.from('memberships').insert({
     user_id: userId,
-    plan_id: planId,
+    plan_id: finalPlanId,
     start_date: startDate.toISOString(),
     end_date: endDate.toISOString()
   })
 
   if (error) return { error: error.message }
 
-  await logAdminAction('RENEW_MEMBERSHIP', `Renovó membresía con plan ${planData.name} (${planData.duration_days} días). Motivo: ${reason.trim()}`, userId)
+  await logAdminAction('RENEW_MEMBERSHIP', `Renovó membresía con plan ${planName} (${planDuration} días). Motivo: ${reason.trim()}`, userId)
 
   revalidatePath('/admin/users')
   revalidatePath('/admin/payments')

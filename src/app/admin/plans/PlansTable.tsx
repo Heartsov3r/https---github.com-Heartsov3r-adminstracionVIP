@@ -75,7 +75,7 @@ export function PlansTable({ plans }: { plans: any[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {plans.map((plan) => (
+            {plans.filter(p => !p.description?.startsWith('CUSTOM_PLAN:')).map((plan) => (
                 <TableRow key={plan.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                   <TableCell className="py-5 px-6">
                     <div className="flex items-center gap-3">
@@ -137,7 +137,7 @@ export function PlansTable({ plans }: { plans: any[] }) {
                 </TableRow>
               ))}
             
-            {plans.length === 0 && (
+            {plans.filter(p => !p.description?.startsWith('CUSTOM_PLAN:')).length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="h-40 text-center text-muted-foreground font-medium bg-muted/10 opacity-50">
                    <div className="flex flex-col items-center gap-2">

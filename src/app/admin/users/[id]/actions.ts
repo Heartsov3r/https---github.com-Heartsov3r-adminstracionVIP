@@ -179,16 +179,65 @@ export async function subtractMembershipDays(userId: string, currentMembershipId
   return { success: true }
 }
 
-export async function changeMembershipPlan(userId: string, membershipId: string, newPlanId: string, reason: string) {
+export async function changeMembershipPlan(
+  userId: string, 
+  membershipId: string, 
+  newPlanId: string, 
+  reason: string,
+  customDays?: number,
+  customPrice?: number,
+  customDetails?: string
+) {
   const supabase = await createClient()
 
   if (!reason || reason.trim().length === 0) {
     return { error: 'El motivo es obligatorio.' }
   }
 
-  // 1. Obtener datos del nuevo plan
-  const { data: newPlan } = await supabase.from('plans').select('id, name, duration_days, price').eq('id', newPlanId).single()
-  if (!newPlan) return { error: 'Plan no encontrado.' }
+  let finalPlanId = newPlanId
+  let planDuration = 0
+  let planName = ''
+  let planPrice = 0
+
+  if (newPlanId === 'custom') {
+    if (!customDays || isNaN(customDays) || customDays < 1) {
+      return { error: 'Los días del plan personalizado son inválidos o menores a 1.' }
+    }
+    const finalPrice = customPrice !== undefined && !isNaN(customPrice) ? customPrice : 0
+    const finalDetails = customDetails?.trim() || 'Plan personalizado asignado por administrador'
+
+    // Insertar el plan personalizado
+    const { data: newPlan, error: planError } = await supabase
+      .from('plans')
+      .insert({
+        name: 'Personalizado',
+        description: `CUSTOM_PLAN: ${finalDetails}`,
+        price: finalPrice,
+        duration_days: customDays,
+        is_active: false
+      })
+      .select('id, name, duration_days, price')
+      .single()
+
+    if (planError) {
+      console.error('Error al crear plan personalizado:', planError.message)
+      return { error: `Fallo al crear plan personalizado: ${planError.message}` }
+    }
+
+    finalPlanId = newPlan.id
+    planDuration = newPlan.duration_days
+    planName = newPlan.name
+    planPrice = newPlan.price
+  } else {
+    // 1. Obtener datos del nuevo plan
+    const { data: newPlan } = await supabase.from('plans').select('id, name, duration_days, price').eq('id', newPlanId).single()
+    if (!newPlan) return { error: 'Plan no encontrado.' }
+    
+    finalPlanId = newPlan.id
+    planDuration = newPlan.duration_days
+    planName = newPlan.name
+    planPrice = newPlan.price
+  }
 
   // 2. Obtener membresía actual
   const { data: membership } = await supabase.from('memberships').select('start_date, plan_id, plans(name, price)').eq('id', membershipId).single()
@@ -197,12 +246,12 @@ export async function changeMembershipPlan(userId: string, membershipId: string,
   // 3. Recalcular end_date basado en start_date + duración del nuevo plan
   const startDate = new Date(membership.start_date)
   const newEndDate = new Date(startDate)
-  newEndDate.setDate(startDate.getDate() + newPlan.duration_days)
+  newEndDate.setDate(startDate.getDate() + planDuration)
 
   // 4. Actualizar membresía
   const { error } = await supabase.from('memberships')
     .update({ 
-      plan_id: newPlanId, 
+      plan_id: finalPlanId, 
       end_date: newEndDate.toISOString(),
       updated_at: new Date().toISOString()
     })
@@ -213,7 +262,7 @@ export async function changeMembershipPlan(userId: string, membershipId: string,
   const oldPlan: any = membership.plans
   await logAdminAction(
     'CHANGE_PLAN', 
-    `Cambió plan de "${oldPlan?.name || 'Sin plan'}" ($${oldPlan?.price || 0}) a "${newPlan.name}" ($${newPlan.price}). Motivo: ${reason.trim()}`, 
+    `Cambió plan de "${oldPlan?.name || 'Sin plan'}" ($${oldPlan?.price || 0}) a "${planName}" ($${planPrice}). Motivo: ${reason.trim()}`, 
     userId
   )
 
