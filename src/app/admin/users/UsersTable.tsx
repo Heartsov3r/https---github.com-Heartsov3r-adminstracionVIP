@@ -575,7 +575,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
 
       {/* MODAL ASIGNAR PLAN */}
       <Dialog open={!!planUser} onOpenChange={(val) => { !val && setPlanUser(null); setSelectedPlanId(''); }}>
-        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
+        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto scrollbar-thin">
           {planUser && (
             <>
               <DialogHeader className="items-center text-center">
@@ -683,7 +683,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
 
       {/* MODAL RENOVAR MEMBRESÍA (NUEVO CICLO) */}
       <Dialog open={!!renewUser} onOpenChange={(val) => { !val && setRenewUser(null); setSelectedPlanId(''); }}>
-        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
+        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto scrollbar-thin">
           {renewUser && (
             <>
               <DialogHeader className="items-center text-center">
@@ -792,7 +792,7 @@ export function UsersTable({ users, plans }: { users: any[], plans: any[] }) {
 
       {/* MODAL CAMBIAR PLAN (CORRECCIÓN) */}
       <Dialog open={!!changePlanUser} onOpenChange={(val) => { !val && setChangePlanUser(null); setSelectedPlanId(''); }}>
-        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8">
+        <DialogContent className="glass-card border-none md:max-w-md rounded-[2rem] p-8 max-h-[90vh] overflow-y-auto scrollbar-thin">
           {changePlanUser && (
             <>
               <DialogHeader className="items-center text-center">
